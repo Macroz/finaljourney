@@ -235,7 +235,7 @@
               (>= py (@data :screen-height)))
       (end!)))
   (let [level (get @data :level 0)
-        speed 1]
+        speed 50]
     (swap! data (fn [data]
                   (update-in data [:level] (fn [x] (+ x speed)))))
     ;;(update-in data [:level] inc)))
@@ -278,6 +278,7 @@
         layer (make-layer)]
     (.add stage background)
     (.add stage layer)
+    (.setClearBeforeDraw background false)
     (swap! data (fn [data]
                   (-> data
                       (assoc :main-layer layer)
