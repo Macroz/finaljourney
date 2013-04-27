@@ -98,6 +98,17 @@
         rect (make-rect! layer {:x x :y y :width 10 :height 10})]
     (swap! data (fn [data] (assoc data :player {:object rect})))))
 
+(defn make-fallen! []
+  (let [layer (get-main-layer)
+        {sw :screen-width
+         sh :screen-height} @data
+        x (+ 250 (rand-int (max 0 (- sw 250))))
+        y (rand-int sh)
+        w (+ 5 (rand-int 5) (rand-int 5) (rand-int 5))
+        h (+ 5 (rand-int 5) (rand-int 5) (rand-int 5))
+        object (make-rect! layer {:x x :y y :width w :height h})]
+    (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))))
+
 (defn setup-world []
   (let [stage (make-stage)
         layer (make-layer)]
@@ -107,7 +118,11 @@
     (let [canvas (get-canvas)
           world (make-boxbox canvas)]
       (.onRender world (fn [] (.draw stage))))
-    (init-player!)))
+    (init-player!)
+    (swap! data (fn [data]
+                  (assoc data :fallen [])))
+    (doseq [i (range 10)]
+      (make-fallen!))))
 
 (defn to-degrees [radians]
   (/ (* 180.0 radians) Math/PI))
