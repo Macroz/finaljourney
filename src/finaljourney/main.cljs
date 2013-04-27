@@ -167,6 +167,14 @@
         (< y 0)
         (>= y (@data :screen-height)))))
 
+(defn end! []
+  (when-not (@data :end?)
+    (log "end")
+    (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
+    (em/at js/document [".black"] (em/chain (em/add-class "show")
+                                            (em/fade-in 4000)))
+    (swap! data (fn [data] (assoc data :end? true)))))
+
 (defn tick []
   (let [removes (filter remove-fallen? (@data :fallen))
         fallen (remove remove-fallen? (@data :fallen))]
@@ -180,7 +188,13 @@
              kinetic :kinetic} (f :object)]
         (.destroy boxbox)
         (.destroy kinetic)
-        (make-fallen!)))))
+        (make-fallen!)))
+    (let [player-object (get-in @data [:player :object])
+          {px "x" py "y"} (get-position player-object)]
+      (when (or (< px 0)
+                (< py 0)
+                (>= py (@data :screen-height)))
+        (end!)))))
 
 (defn setup-world []
   (let [stage (make-stage)

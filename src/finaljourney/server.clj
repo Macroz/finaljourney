@@ -17,13 +17,14 @@
   (html5 [:html
           [:head
            [:title "Final Journey"]
+           (include-css "css/reset.css")
            (include-css "css/main.css")]
           [:body
            [:div.center
             [:div.content
-             [:h1 "Final Journey - " [:span.minimalism "minimalism"]]
+             [:h1 "Final Journey"]
              [:div.space]
-             [:div.center [:a.play {:href "/game"} "Play"]]
+             [:a.begin {:href "/game"} [:h1 "Begin"]]
              ]]]]))
 
 (defn game-page [params]
@@ -42,6 +43,11 @@
            (include-js "js/hammer.js")
            (include-js "js/cljs.js")]
           [:body {:onload (str "finaljourney.main.startup(" (params :delay) ");")}
+           [:div.black.center
+            [:div.content
+             [:h1 "Final Journey"]
+             [:div.space]
+             [:a.end {:href "/"} [:h1 "End"]]]]
            [:div#container]]]))
 
 (defroutes handler
