@@ -235,7 +235,7 @@
               (>= py (@data :screen-height)))
       (end!)))
   (let [level (get @data :level 0)
-        speed 100]
+        speed 1]
     (swap! data (fn [data]
                   (update-in data [:level] (fn [x] (+ x speed)))))
     ;;(update-in data [:level] inc)))
