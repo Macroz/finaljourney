@@ -1,0 +1,45 @@
+html {
+    font-family: Times New Roman;
+}
+
+h1 {
+    font-variant: small-caps;
+    letter-spacing: 0.1em;
+    text-align: center;
+}
+
+.center {
+    text-align: center;
+}
+
+.content {
+    width: 600px;
+    text-align: left;
+    display: inline-block;
+}
+
+.minimalism {
+    font-weight: 50;
+    font-variant: small-caps;
+    letter-spacing: 0.1em;
+}
+
+.play {
+    width: 200px;
+    font-size: 3em;
+    text-align: center;
+    display: inline-block;
+}
+
+.space {
+    height: 5em;
+}
+
+a:-webkit-any-link {
+    color: black;
+    text-decoration:none !important;
+}
+
+a:-webkit-any-link:hover {
+    background-color: #ccc;
+}

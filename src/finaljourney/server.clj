@@ -19,9 +19,12 @@
            [:title "Final Journey"]
            (include-css "css/main.css")]
           [:body
-           [:div [:h1 "Final Journey"]
-            [:a {:href "/game"} "Play"]
-            ]]]))
+           [:div.center
+            [:div.content
+             [:h1 "Final Journey - " [:span.minimalism "minimalism"]]
+             [:div.space]
+             [:div.center [:a.play {:href "/game"} "Play"]]
+             ]]]]))
 
 (defn game-page [params]
   (html5 [:html
