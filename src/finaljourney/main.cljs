@@ -166,9 +166,9 @@
 
 (defn remove-fallen? [fallen]
   (let [{x "x" y "y"} (get-position (fallen :object))]
-    (or (< x 0)
-        (< y 0)
-        (>= y (@data :screen-height)))))
+    (or (< x -50)
+        (< y -50)
+        (>= y (+ (@data :screen-height) 50)))))
 
 (defn end! []
   (when-not (@data :end?)
