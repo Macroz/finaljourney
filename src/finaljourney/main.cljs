@@ -72,11 +72,24 @@
   (vec (for [[x y] (partition 2 points)]
          {:x x :y y})))
 
+(defn make-pattern! [layer]
+  (let [world (@data :world)
+        w (@data :screen-width)
+        h (@data :screen-height)
+        krect (js/Kinetic.Polygon. (clj->js {:x 0
+                                             :y 0
+                                             :points [0 0 w 0 w h 0 h]
+                                             :fill "black"
+                                             }))]
+    (.add layer krect)
+    {:kinetic krect}))
+
 (defn make-poly! [layer x y a points]
   (let [world (@data :world)
         krect (js/Kinetic.Polygon. (clj->js {:x x
                                              :y y
                                              :points points
+                                             :fill "white"
                                              :stroke "black"
                                              :strokeWidth 2
                                              :rotationDeg a
@@ -112,15 +125,24 @@
                   (assoc data :world world)))
     world))
 
-(defn get-canvas []
-  (-> (.getElementById js/document "container")
-      (.-childNodes)
-      (aget 0)
-      (.-childNodes)
-      (aget 0)))
+(defn get-canvas [i]
+  (let [i (or i 1)]
+    (-> (.getElementById js/document "container")
+        (.-childNodes)
+        (aget 0)
+        (.-childNodes)
+        (aget i))))
 
 (defn get-main-layer []
   (@data :main-layer))
+
+(defn get-level-color []
+  (let [{x "x" y "y"} (get-position (get-in @data [:player :object]))
+        p (get @data :level)
+        scale 10000]
+    (cond (< p 0) "#000"
+          (< p scale) (let [c (int (Math/round (* 255 (- 1.0 (/ (- scale p) scale)))))] (str "rgb(" c "," c "," c ")"))
+          :else "#fff")))
 
 (defn setup-screen []
   (let [;;container (.getElementById js/document "container")
@@ -191,25 +213,42 @@
              kinetic :kinetic} (f :object)]
         (.destroy boxbox)
         (.destroy kinetic)
-        (make-fallen!)))
-    (let [player-object (get-in @data [:player :object])
-          {px "x" py "y"} (get-position player-object)]
-      (when (or (< px 0)
-                (< py 0)
-                (>= py (@data :screen-height)))
-        (end!)))))
+        (make-fallen!))))
+  (let [player-object (get-in @data [:player :object])
+        {px "x" py "y"} (get-position player-object)]
+    (when (or (< px 0)
+              (< py 0)
+              (>= py (@data :screen-height)))
+      (end!)))
+  (let [level (get @data :level 0)]
+    (swap! data (fn [data]
+                  (update-in data [:level] inc))))
+  (let [pattern (get-in @data [:pattern])]
+    (when pattern
+      (.setFill (pattern :kinetic) (get-level-color)))))
 
 (defn setup-world []
   (let [stage (make-stage)
+        background (make-layer)
         layer (make-layer)]
+    (.add stage background)
     (.add stage layer)
     (swap! data (fn [data]
-                  (assoc data :main-layer layer)))
+                  (-> data
+                      (assoc :main-layer layer)
+                      (assoc :background background)
+                      )))
+    (let [pattern (make-pattern! background)]
+      (swap! data (fn [data]
+                    (assoc data :pattern pattern))))
     (let [canvas (get-canvas)
+          background (get-canvas 0)
           world (make-boxbox canvas)]
       ;; Stupid hack, why doesn't it get full size in Firefox otherwise?
       (set! (.-width canvas) (@data :screen-width))
       (set! (.-height canvas) (@data :screen-height))
+      (set! (.-width background) (@data :screen-width))
+      (set! (.-height background) (@data :screen-height))
       (.onRender world (fn [] (.draw stage)))
       (.onTick world tick))
     (init-player!)
