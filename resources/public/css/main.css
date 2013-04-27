@@ -2,6 +2,12 @@ html {
     font-family: Times New Roman;
 }
 
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
 h1 {
     font-variant: small-caps;
     letter-spacing: 0.1em;

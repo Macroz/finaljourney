@@ -30,7 +30,8 @@
                                :height (@data :screen-height)})))
 
 (defn make-layer []
-  (js/Kinetic.Layer.))
+  (js/Kinetic.Layer. (clj->js {:width (@data :screen-width)
+                               :height (@data :screen-height)})))
 
 (defn make-rect! [layer rect]
   (let [world (@data :world)
@@ -56,11 +57,13 @@
                                              :draw (fn [])
                                              :onTick (fn []
                                                        (this-as brect
-                                                                (let [{x "x"
-                                                                       y "y"} (js->clj (.position brect))]
-                                                                  (.setPosition krect
-                                                                                (- x (/ w 2))
-                                                                                (- y (/ h 2))))))
+                                                                (when brect
+                                                                  (let [{x "x"
+                                                                         y "y"} (js->clj (.position brect))]
+                                                                    (.setPosition krect
+                                                                                  (- x (/ w 2))
+                                                                                  (- y (/ h 2)))
+                                                                    ))))
                                              }))]
     (.add layer krect)
     {:kinetic krect :boxbox brect}))
@@ -88,20 +91,23 @@
                                              :draw (fn [])
                                              :onTick (fn []
                                                        (this-as t
-                                                                (let [{x "x"
-                                                                       y "y"} (js->clj (.position t))
-                                                                       a (.rotation t)]
-                                                                  (.setX krect x)
-                                                                  (.setY krect y)
-                                                                  (.setRotationDeg krect a)
-                                                                  )))
+                                                                (when t
+                                                                  (let [{x "x"
+                                                                         y "y"} (js->clj (.position t))
+                                                                         a (.rotation t)]
+                                                                    (.setX krect x)
+                                                                    (.setY krect y)
+                                                                    (.setRotationDeg krect a)
+                                                                    ))))
                                              }))]
     (.add layer krect)
     {:kinetic krect :boxbox brect :points points}))
 
 (defn make-boxbox [canvas]
   (let [world (.createWorld js/boxbox canvas (clj->js {:scale 1
-                                                       :gravity {:x -10 :y 0}}))]
+                                                       :gravity {:x -10 :y 0}
+                                                       :width (@data :screen-width)
+                                                       :height (@data :screen-height)}))]
     (swap! data (fn [data]
                   (assoc data :world world)))
     world))
@@ -117,8 +123,17 @@
   (@data :main-layer))
 
 (defn setup-screen []
-  (let [screen-width (.-innerWidth js/window)
-        screen-height (.-innerHeight js/window)]
+  (let [;;container (.getElementById js/document "container")
+        ;;screen-width (.-offsetWidth container)
+        ;;screen-height (.-offsetHeight container)
+        screen-width (.-innerWidth js/window)
+        screen-height (.-innerHeight js/window)
+        ;;screen-width (.-clientWidth (.-documentElement js/document))
+        ;;screen-height (.-clientHeight (.-documentElement js/document))
+        ;;screen-width (.-innerWidth js/window)
+        ;;screen-height (.-innerHeight js/window)
+        ]
+    (log "detected screen " screen-width "x" screen-height)
     (swap! data (fn [data]
                   (assoc data :screen-width screen-width :screen-height screen-height)))))
 
@@ -135,15 +150,37 @@
   (let [layer (get-main-layer)
         {sw :screen-width
          sh :screen-height} @data
-        x (+ 250 (rand-int (max 0 (- sw 250))))
+        x (+ sw (rand-int (max 0 (- sw 250))))
         y (rand-int sh)
         w (+ 5 (rand 10) (rand 10) (rand 10))
         h (+ 5 (rand 10) (rand 10) (rand 10))
         object (make-poly! layer x y (rand 360) [0 0 w 0 w h 0 h])]
     ;;(log "xy " x " " y)
-    (impulse object (+ (rand 10) (rand 20)) (rand 360))
+    (impulse object (+ (rand 200000) (rand 300000)) (rand (* 2 Math/PI)))
+    (impulse object (+ 1000000) 3.141)
     (torque object (rand 100000000))
     (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))))
+
+(defn remove-fallen? [fallen]
+  (let [{x "x" y "y"} (get-position (fallen :object))]
+    (or (< x 0)
+        (< y 0)
+        (>= y (@data :screen-height)))))
+
+(defn tick []
+  (let [removes (filter remove-fallen? (@data :fallen))
+        fallen (remove remove-fallen? (@data :fallen))]
+    (swap! data (fn [data]
+                  (assoc data :fallen fallen)))
+    ;; WTF have to put this here otherwise doseq is skipped
+    (count fallen)
+    (doseq [f removes]
+      ;;(log "removing " f)
+      (let [{boxbox :boxbox
+             kinetic :kinetic} (f :object)]
+        (.destroy boxbox)
+        (.destroy kinetic)
+        (make-fallen!)))))
 
 (defn setup-world []
   (let [stage (make-stage)
@@ -153,11 +190,15 @@
                   (assoc data :main-layer layer)))
     (let [canvas (get-canvas)
           world (make-boxbox canvas)]
-      (.onRender world (fn [] (.draw stage))))
+      ;; Stupid hack, why doesn't it get full size in Firefox otherwise?
+      (set! (.-width canvas) (@data :screen-width))
+      (set! (.-height canvas) (@data :screen-height))
+      (.onRender world (fn [] (.draw stage)))
+      (.onTick world tick))
     (init-player!)
     (swap! data (fn [data]
                   (assoc data :fallen [])))
-    (doseq [i (range 25)]
+    (doseq [i (range 15)]
       (make-fallen!))))
 
 (defn to-degrees [radians]
