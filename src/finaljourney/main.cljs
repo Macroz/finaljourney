@@ -159,6 +159,16 @@
     (swap! data (fn [data]
                   (assoc data :screen-width screen-width :screen-height screen-height)))))
 
+(defn resize []
+  (setup-screen)
+  (let [w (@data :screen-width)
+        h (@data :screen-height)
+        pattern (@data :pattern)]
+    (.setSize (@data :stage) w h)
+    (when pattern
+      (.setPoints (pattern :kinetic) (clj->js [0 0 w 0 w h 0 h]))))
+  (stupid-hack!))
+
 (defn init-player! []
   (let [layer (get-main-layer)
         {w :screen-width
@@ -227,6 +237,16 @@
     (when pattern
       (.setFill (pattern :kinetic) (get-level-color)))))
 
+
+(defn stupid-hack! []
+  (let [canvas (get-canvas)
+        background (get-canvas 0)]
+    ;; Stupid hack, why doesn't it get full size in Firefox otherwise?
+    (set! (.-width canvas) (@data :screen-width))
+    (set! (.-height canvas) (@data :screen-height))
+    (set! (.-width background) (@data :screen-width))
+    (set! (.-height background) (@data :screen-height))))
+
 (defn setup-world []
   (let [stage (make-stage)
         background (make-layer)
@@ -237,18 +257,14 @@
                   (-> data
                       (assoc :main-layer layer)
                       (assoc :background background)
+                      (assoc :stage stage)
                       )))
     (let [pattern (make-pattern! background)]
       (swap! data (fn [data]
                     (assoc data :pattern pattern))))
+    (stupid-hack!)
     (let [canvas (get-canvas)
-          background (get-canvas 0)
           world (make-boxbox canvas)]
-      ;; Stupid hack, why doesn't it get full size in Firefox otherwise?
-      (set! (.-width canvas) (@data :screen-width))
-      (set! (.-height canvas) (@data :screen-height))
-      (set! (.-width background) (@data :screen-width))
-      (set! (.-height background) (@data :screen-height))
       (.onRender world (fn [] (.draw stage)))
       (.onTick world tick))
     (init-player!)
@@ -310,5 +326,6 @@
   (setup-screen)
   (setup-world)
   (setup-controls)
+  (set! (.-onresize js/window) resize)
   (em/at js/document ["canvas"] (em/chain (em/fade-in 2000)))
   (log "startup done"))
