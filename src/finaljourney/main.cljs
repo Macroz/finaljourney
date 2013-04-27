@@ -5,7 +5,9 @@
 
 (defn log [& messages]
   (when js/console
-    (.log js/console (apply str messages))))
+    (if (= 1 (count messages))
+      (.log js/console (first messages))
+      (.log js/console (apply str messages)))))
 
 (defn clj->js
   "Recursively transforms ClojureScript maps into Javascript objects,
@@ -91,7 +93,10 @@
   (let [layer (get-main-layer)
         {w :screen-width
          h :screen-height} @data
-        rect (make-rect! layer {:x 200 :y (/ h 2) :width 10 :height 10})]))
+        x 200
+        y (/ h 2)
+        rect (make-rect! layer {:x x :y y :width 10 :height 10})]
+    (swap! data (fn [data] (assoc data :player {:object rect})))))
 
 (defn setup-world []
   (let [stage (make-stage)
@@ -104,8 +109,36 @@
       (.onRender world (fn [] (.draw stage))))
     (init-player!)))
 
+(defn to-degrees [radians]
+  (/ (* 180.0 radians) Math/PI))
+
+(defn get-position [object]
+  (js->clj (.position (get object :boxbox))))
+
+(defn impulse [object power angle]
+  (.applyImpulse (get object :boxbox) power (+ 90 (to-degrees angle))))
+
+(defn thrust [tx ty]
+  (let [player-object (get-in @data [:player :object])
+        {px "x" py "y"} (get-position player-object)
+        dx (- tx px)
+        dy (- ty py)
+        a (Math/atan2 dy dx)]
+    (impulse player-object 100000 a)))
+
+
+(defn mouse-click-action [event]
+  (thrust (.-clientX event) (.-clientY event)))
+
+(em/defaction setup-mouse-events []
+  ["canvas"] (em/listen :click mouse-click-action))
+
+(defn setup-controls []
+  (setup-mouse-events))
+
 (defn startup []
   (log "startup")
   (setup-screen)
   (setup-world)
+  (setup-controls)
   (log "startup done"))
