@@ -69,13 +69,14 @@
   (vec (for [[x y] (partition 2 points)]
          {:x x :y y})))
 
-(defn make-poly! [layer x y points]
+(defn make-poly! [layer x y a points]
   (let [world (@data :world)
         krect (js/Kinetic.Polygon. (clj->js {:x x
                                              :y y
                                              :points points
                                              :stroke "black"
                                              :strokeWidth 2
+                                             :rotationDeg a
                                              }))
         brect (.createEntity world (clj->js {:x x
                                              :y y
@@ -83,6 +84,7 @@
                                              :shape "polygon"
                                              :density 10
                                              :color "red"
+                                             :rotation a
                                              :draw (fn [])
                                              :onTick (fn []
                                                        (this-as t
@@ -126,7 +128,7 @@
          h :screen-height} @data
         x 200
         y (/ h 2)
-        rect (make-rect! layer {:x x :y y :width 10 :height 10})]
+        rect (make-poly! layer x y 0 [0 0 30 10 0 20])]
     (swap! data (fn [data] (assoc data :player {:object rect})))))
 
 (defn make-fallen! []
@@ -137,10 +139,10 @@
         y (rand-int sh)
         w (+ 5 (rand 10) (rand 10) (rand 10))
         h (+ 5 (rand 10) (rand 10) (rand 10))
-        object (make-poly! layer x y [0 0 w 0 w h 0 h])]
+        object (make-poly! layer x y (rand 360) [0 0 w 0 w h 0 h])]
     ;;(log "xy " x " " y)
     (impulse object (+ (rand 10) (rand 20)) (rand 360))
-    (torque object 100)
+    (torque object (rand 100000000))
     (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))))
 
 (defn setup-world []
@@ -155,7 +157,7 @@
     (init-player!)
     (swap! data (fn [data]
                   (assoc data :fallen [])))
-    (doseq [i (range 50)]
+    (doseq [i (range 25)]
       (make-fallen!))))
 
 (defn to-degrees [radians]
@@ -180,7 +182,8 @@
 
 
 (defn mouse-click-action [event]
-  (let [x (.-clientX event)
+  (let [player-object (get-in @data [:player :object])
+        x (.-clientX event)
         y (.-clientY event)]
     (thrust x y)))
 
