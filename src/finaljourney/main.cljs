@@ -79,7 +79,7 @@
         krect (js/Kinetic.Polygon. (clj->js {:x 0
                                              :y 0
                                              :points [0 0 w 0 w h 0 h]
-                                             :fill "black"
+                                             :stroke "black"
                                              }))]
     (.add layer krect)
     {:kinetic krect}))
@@ -139,7 +139,7 @@
 (defn get-level-color []
   (let [{x "x" y "y"} (get-position (get-in @data [:player :object]))
         p (get @data :level)
-        scale 10000]
+        scale 50000]
     (cond (< p 0) "#000"
           (< p scale) (let [c (int (Math/round (* 255 (- 1.0 (/ (- scale p) scale)))))] (str "rgb(" c "," c "," c ")"))
           :else "#fff")))
@@ -163,10 +163,14 @@
   (setup-screen)
   (let [w (@data :screen-width)
         h (@data :screen-height)
-        pattern (@data :pattern)]
+        pattern1 (@data :pattern1)
+        pattern2 (@data :pattern2)
+        pattern3 (@data :pattern3)]
     (.setSize (@data :stage) w h)
     (when pattern
-      (.setPoints (pattern :kinetic) (clj->js [0 0 w 0 w h 0 h]))))
+      (.setPoints (pattern1 :kinetic) (clj->js [0 0 w 0 w h 0 h]))
+      (.setPoints (pattern2 :kinetic) (clj->js [0 0 w 0 w h 0 h]))
+      (.setPoints (pattern3 :kinetic) (clj->js [0 0 w 0 w h 0 h]))))
   (stupid-hack!))
 
 (defn init-player! []
@@ -230,12 +234,33 @@
               (< py 0)
               (>= py (@data :screen-height)))
       (end!)))
-  (let [level (get @data :level 0)]
+  (let [level (get @data :level 0)
+        speed 100]
     (swap! data (fn [data]
-                  (update-in data [:level] inc))))
-  (let [pattern (get-in @data [:pattern])]
-    (when pattern
-      (.setFill (pattern :kinetic) (get-level-color)))))
+                  (update-in data [:level] (fn [x] (+ x speed)))))
+    ;;(update-in data [:level] inc)))
+    (let [pattern (get-in @data [:pattern1])]
+      (when pattern
+        (.setFill (pattern :kinetic) (get-level-color))))
+    (let [pattern (get-in @data [:pattern2])]
+      (when pattern
+        (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 50) -500]))
+        (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 300))))))
+        (.setFillPatternRotationDeg (pattern :kinetic) (mod (/ level 300) 360))
+        (.setOpacity (pattern :kinetic) (max 0 (/ (- 6000 level) 5000)))
+        ))
+    (let [pattern (get-in @data [:pattern3])]
+      (when pattern
+        (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 77) -500]))
+        (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 700))))))
+        (.setFillPatternRotationDeg (pattern :kinetic) (- 360 (mod (/ level 200) 360)))
+        (.setOpacity (pattern :kinetic)
+                     (cond (< level 8000) 0
+                           (< level 13000) (/ (- level 8000) 5000)
+                           (< level 18000) (- 1.0 (/ (- level 13000) 5000))
+                           :else 0))
+        ))
+    ))
 
 
 (defn stupid-hack! []
@@ -259,9 +284,30 @@
                       (assoc :background background)
                       (assoc :stage stage)
                       )))
-    (let [pattern (make-pattern! background)]
+    (let [image1 (js/Image.)
+          image2 (js/Image.)
+          pattern1 (make-pattern! background)
+          pattern2 (make-pattern! background)
+          pattern3 (make-pattern! background)]
+      (set! (.-onload image1) (fn []
+                                (swap! data (fn [data]
+                                              (assoc data :image1 image1)))
+                                (.setFillPatternImage (pattern2 :kinetic) (@data :image1))
+                                (.setFillPatternOffset (pattern2 :kinetic) [0 0])
+                                (.draw background)))
+      (set! (.-src image1)  "/img/pattern1.png")
+      (set! (.-onload image2) (fn []
+                                (swap! data (fn [data]
+                                              (assoc data :image2 image2)))
+                                (.setFillPatternImage (pattern3 :kinetic) (@data :image2))
+                                (.setFillPatternOffset (pattern3 :kinetic) [0 0])
+                                (.draw background)))
+      (set! (.-src image2)  "/img/pattern2.png")
       (swap! data (fn [data]
-                    (assoc data :pattern pattern))))
+                    (-> data
+                        (assoc :pattern1 pattern1)
+                        (assoc :pattern2 pattern2)
+                        (assoc :pattern3 pattern3)))))
     (stupid-hack!)
     (let [canvas (get-canvas)
           world (make-boxbox canvas)]
@@ -291,7 +337,7 @@
         dx (- tx px)
         dy (- ty py)
         a (Math/atan2 dy dx)]
-    (impulse player-object 100000 a)))
+    (impulse player-object 1000000 a)))
 
 
 (defn mouse-click-action [event]

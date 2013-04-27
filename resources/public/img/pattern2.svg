@@ -7,7 +7,6 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="100"
@@ -22,31 +21,276 @@
   <defs
      id="defs4">
     <pattern
-       inkscape:collect="always"
-       xlink:href="#Checkerboard"
-       id="pattern5448"
-       patternTransform="matrix(10.001683,0,0,9.971169,-10.032376,-4.8359408)" />
-    <pattern
-       inkscape:stockid="Checkerboard"
-       id="Checkerboard"
+       inkscape:stockid="Polka dots, large"
+       id="Polkadots-large"
        patternTransform="translate(0,0) scale(10,10)"
-       height="2"
-       width="2"
+       height="10"
+       width="10"
        patternUnits="userSpaceOnUse"
        inkscape:collect="always">
-      <rect
-         id="rect4582"
-         height="1"
-         width="1"
-         y="0"
-         x="0"
+      <circle
+         id="circle4957"
+         r="0.45"
+         cy="0.810"
+         cx="2.567"
          style="fill:black;stroke:none" />
-      <rect
-         id="rect4584"
-         height="1"
-         width="1"
-         y="1"
-         x="1"
+      <circle
+         id="circle4959"
+         r="0.45"
+         cy="2.33"
+         cx="3.048"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4961"
+         r="0.45"
+         cy="2.415"
+         cx="4.418"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4963"
+         r="0.45"
+         cy="3.029"
+         cx="1.844"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4965"
+         r="0.45"
+         cy="1.363"
+         cx="6.08"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4967"
+         r="0.45"
+         cy="4.413"
+         cx="5.819"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4969"
+         r="0.45"
+         cy="4.048"
+         cx="4.305"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4971"
+         r="0.45"
+         cy="3.045"
+         cx="5.541"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4973"
+         r="0.45"
+         cy="5.527"
+         cx="4.785"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4975"
+         r="0.45"
+         cy="5.184"
+         cx="2.667"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4977"
+         r="0.45"
+         cy="1.448"
+         cx="7.965"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4979"
+         r="0.45"
+         cy="5.049"
+         cx="7.047"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4981"
+         r="0.45"
+         cy="0.895"
+         cx="4.340"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4983"
+         r="0.45"
+         cy="0.340"
+         cx="7.125"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4985"
+         r="0.45"
+         cy="1.049"
+         cx="9.553"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4987"
+         r="0.45"
+         cy="2.689"
+         cx="7.006"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4989"
+         r="0.45"
+         cy="2.689"
+         cx="8.909"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4991"
+         r="0.45"
+         cy="4.407"
+         cx="9.315"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4993"
+         r="0.45"
+         cy="3.870"
+         cx="7.820"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4995"
+         r="0.45"
+         cy="5.948"
+         cx="8.270"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4997"
+         r="0.45"
+         cy="7.428"
+         cx="7.973"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle4999"
+         r="0.45"
+         cy="8.072"
+         cx="9.342"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5001"
+         r="0.45"
+         cy="9.315"
+         cx="8.206"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5003"
+         r="0.45"
+         cy="9.475"
+         cx="9.682"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5005"
+         r="0.45"
+         cy="6.186"
+         cx="9.688"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5007"
+         r="0.45"
+         cy="6.296"
+         cx="3.379"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5009"
+         r="0.45"
+         cy="8.204"
+         cx="2.871"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5011"
+         r="0.45"
+         cy="8.719"
+         cx="4.59"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5013"
+         r="0.45"
+         cy="9.671"
+         cx="3.181"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5015"
+         r="0.45"
+         cy="7.315"
+         cx="5.734"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5017"
+         r="0.45"
+         cy="6.513"
+         cx="6.707"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5019"
+         r="0.45"
+         cy="9.670"
+         cx="5.730"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5021"
+         r="0.45"
+         cy="8.373"
+         cx="6.535"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5023"
+         r="0.45"
+         cy="7.154"
+         cx="4.37"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5025"
+         r="0.45"
+         cy="7.25"
+         cx="0.622"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5027"
+         r="0.45"
+         cy="5.679"
+         cx="0.831"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5029"
+         r="0.45"
+         cy="8.519"
+         cx="1.257"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5031"
+         r="0.45"
+         cy="6.877"
+         cx="1.989"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5033"
+         r="0.45"
+         cy="3.181"
+         cx="0.374"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5035"
+         r="0.45"
+         cy="1.664"
+         cx="1.166"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5037"
+         r="0.45"
+         cy="0.093"
+         cx="1.151"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5039"
+         r="0.45"
+         cy="10.093"
+         cx="1.151"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5041"
+         r="0.45"
+         cy="4.451"
+         cx="1.302"
+         style="fill:black;stroke:none" />
+      <circle
+         id="circle5043"
+         r="0.45"
+         cy="3.763"
+         cx="3.047"
          style="fill:black;stroke:none" />
     </pattern>
     <pattern
@@ -341,9 +585,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="16"
-     inkscape:cx="84.057429"
-     inkscape:cy="1.4118996"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="61.557429"
+     inkscape:cy="86.4119"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -370,7 +614,7 @@
      id="layer1"
      transform="translate(0,-952.36218)">
     <rect
-       style="fill:url(#pattern5448);fill-opacity:1;stroke:none"
+       style="fill:url(#Polkadots-large);fill-opacity:1.0;stroke:none"
        id="background"
        width="99.9375"
        height="99.75"
@@ -378,6 +622,9 @@
        y="952.36218"
        inkscape:label="#rect3006"
        inkscape:transform-center-y="3.9885018"
-       ry="0" />
+       ry="0"
+       inkscape:export-filename="/Users/markku/Data/repository/ludumdare/finaljourney/resources/public/img/pattern1.png"
+       inkscape:export-xdpi="115.2"
+       inkscape:export-ydpi="115.2" />
   </g>
 </svg>
