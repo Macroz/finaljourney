@@ -143,8 +143,9 @@
          h :screen-height} @data
         x 200
         y (/ h 2)
-        rect (make-poly! layer x y 0 [0 0 30 10 0 20])]
-    (swap! data (fn [data] (assoc data :player {:object rect})))))
+        object (make-poly! layer x y 0 [0 0 30 10 0 20])]
+    (impulse object 10000000 0)
+    (swap! data (fn [data] (assoc data :player {:object object})))))
 
 (defn make-fallen! []
   (let [layer (get-main-layer)
@@ -268,4 +269,5 @@
   (setup-screen)
   (setup-world)
   (setup-controls)
+  (em/at js/document ["canvas"] (em/chain (em/fade-in 2000)))
   (log "startup done"))
