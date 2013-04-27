@@ -63,8 +63,39 @@
                                                                                 (- y (/ h 2))))))
                                              }))]
     (.add layer krect)
-    ;;(.draw layer)
     {:kinetic krect :boxbox brect}))
+
+(defn to-boxbox-points [points]
+  (vec (for [[x y] (partition 2 points)]
+         {:x x :y y})))
+
+(defn make-poly! [layer x y points]
+  (let [world (@data :world)
+        krect (js/Kinetic.Polygon. (clj->js {:x x
+                                             :y y
+                                             :points points
+                                             :stroke "black"
+                                             :strokeWidth 2
+                                             }))
+        brect (.createEntity world (clj->js {:x x
+                                             :y y
+                                             :points (to-boxbox-points points)
+                                             :shape "polygon"
+                                             :density 10
+                                             :color "red"
+                                             :draw (fn [])
+                                             :onTick (fn []
+                                                       (this-as t
+                                                                (let [{x "x"
+                                                                       y "y"} (js->clj (.position t))
+                                                                       a (.rotation t)]
+                                                                  (.setX krect x)
+                                                                  (.setY krect y)
+                                                                  (.setRotationDeg krect a)
+                                                                  )))
+                                             }))]
+    (.add layer krect)
+    {:kinetic krect :boxbox brect :points points}))
 
 (defn make-boxbox [canvas]
   (let [world (.createWorld js/boxbox canvas (clj->js {:scale 1
@@ -104,9 +135,12 @@
          sh :screen-height} @data
         x (+ 250 (rand-int (max 0 (- sw 250))))
         y (rand-int sh)
-        w (+ 5 (rand-int 5) (rand-int 5) (rand-int 5))
-        h (+ 5 (rand-int 5) (rand-int 5) (rand-int 5))
-        object (make-rect! layer {:x x :y y :width w :height h})]
+        w (+ 5 (rand 10) (rand 10) (rand 10))
+        h (+ 5 (rand 10) (rand 10) (rand 10))
+        object (make-poly! layer x y [0 0 w 0 w h 0 h])]
+    ;;(log "xy " x " " y)
+    (impulse object (+ (rand 10) (rand 20)) (rand 360))
+    (torque object 100)
     (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))))
 
 (defn setup-world []
@@ -121,7 +155,7 @@
     (init-player!)
     (swap! data (fn [data]
                   (assoc data :fallen [])))
-    (doseq [i (range 10)]
+    (doseq [i (range 50)]
       (make-fallen!))))
 
 (defn to-degrees [radians]
@@ -132,6 +166,9 @@
 
 (defn impulse [object power angle]
   (.applyImpulse (get object :boxbox) power (+ 90 (to-degrees angle))))
+
+(defn torque [object power]
+  (.applyTorque (get object :boxbox) power))
 
 (defn thrust [tx ty]
   (let [player-object (get-in @data [:player :object])

@@ -1,10 +1,10 @@
 /*
-Copyright (C) 2012 Greg Smith <gsmith@incompl.com>
+  Copyright (C) 2012 Greg Smith <gsmith@incompl.com>
 
-Released under the MIT license:
-https://github.com/incompl/boxbox/blob/master/LICENSE
+  Released under the MIT license:
+  https://github.com/incompl/boxbox/blob/master/LICENSE
 
-Created at Bocoup http://bocoup.com
+  Created at Bocoup http://bocoup.com
 */
 
 /**
@@ -23,15 +23,15 @@ Created at Bocoup http://bocoup.com
     for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
         window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
         window.cancelRequestAnimationFrame = window[vendors[x]+
-          'CancelRequestAnimationFrame'];
+                                                    'CancelRequestAnimationFrame'];
     }
 
     if (!window.requestAnimationFrame) {
         window.requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
-              timeToCall);
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+                                       timeToCall);
             lastTime = currTime + timeToCall;
             return id;
         };
@@ -40,7 +40,7 @@ Created at Bocoup http://bocoup.com
     if (!window.cancelAnimationFrame) {
         window.cancelAnimationFrame = function(id) {
             clearTimeout(id);
-      };
+        };
     }
 }());
 
@@ -52,13 +52,13 @@ Created at Bocoup http://bocoup.com
      * @description global boxbox object
      */
     window.boxbox = {};
-    
+
     // Make sure Box2D exists
     if (Box2D === undefined) {
         console.error('boxbox needs Box2d to work');
         return;
     }
-    
+
     // Object creation inspired by Crockford
     // http://javascript.crockford.com/prototypal.html
     function create(o) {
@@ -66,7 +66,7 @@ Created at Bocoup http://bocoup.com
         F.prototype = o;
         return new F();
     }
-    
+
     // A minimal extend for simple objects inspired by jQuery
     function extend(target, o) {
         if (target === undefined) {
@@ -93,7 +93,7 @@ Created at Bocoup http://bocoup.com
     var shapes = Box2D.Collision.Shapes;
     var b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
     var b2AABB = Box2D.Collision.b2AABB;
-    
+
     /**
      * @_module boxbox
      * @_params canvas, [options]
@@ -119,13 +119,13 @@ Created at Bocoup http://bocoup.com
      &nbsp;&nbsp;gravity: {x: 0, y: 20},
      &nbsp;&nbsp;scale: 60
      });</code>
-     */
+    */
     window.boxbox.createWorld = function(canvas, options) {
         var world = create(World);
         world._init(canvas, options);
         return world;
     };
-    
+
     var WORLD_DEFAULT_OPTIONS = {
         gravity: {x:0, y:10},
         allowSleep: true,
@@ -133,7 +133,7 @@ Created at Bocoup http://bocoup.com
         tickFrequency: 50,
         collisionOutlines: false
     };
-    
+
     var JOINT_DEFAULT_OPTIONS = {
         type: "distance",
         allowCollisions: false
@@ -144,7 +144,7 @@ Created at Bocoup http://bocoup.com
      * @description contains a single self-contained physics simulation
      */
     var World = {
-        
+
         _ops: null,
         _world: null,
         _canvas: null,
@@ -155,6 +155,7 @@ Created at Bocoup http://bocoup.com
         _impactHandlers: {},
         _destroyQueue: [],
         _impulseQueue: [],
+        _torqueQueue: [],
         _constantVelocities: {},
         _constantForces: {},
         _entities: {},
@@ -165,7 +166,7 @@ Created at Bocoup http://bocoup.com
         _onTick: [],
         _creationQueue: [],
         _positionQueue: [],
-        
+
         _init: function(canvasElem, options) {
             var self = this;
             var key;
@@ -175,15 +176,15 @@ Created at Bocoup http://bocoup.com
             this._ops = extend(options, WORLD_DEFAULT_OPTIONS);
             this._world = new b2World(new b2Vec2(this._ops.gravity.x,
                                                  this._ops.gravity.y),
-                                                 true);
+                                      true);
             world = this._world;
             this._canvas = canvasElem;
             this._ctx = this._canvas.getContext("2d");
             this._scale = this._ops.scale;
-            
+
             // Set up rendering on the provided canvas
             if (this._canvas !== undefined) {
-                
+
                 // debug rendering
                 if (this._ops.debugDraw) {
                     var debugDraw = new b2DebugDraw();
@@ -206,7 +207,7 @@ Created at Bocoup http://bocoup.com
                         }
                     }
                 }, this._ops.tickFrequency);
-                
+
                 // animation loop
                 (function animationLoop(){
 
@@ -214,6 +215,7 @@ Created at Bocoup http://bocoup.com
                     var entity;
                     var v;
                     var impulse;
+                    var torque;
                     var f;
                     var toDestroy;
                     var id;
@@ -231,8 +233,14 @@ Created at Bocoup http://bocoup.com
                         impulse = self._impulseQueue.pop();
                         impulse.body.ApplyImpulse(new b2Vec2(impulse.x, impulse.y),
                                                   impulse.body.GetWorldCenter());
-                    }               
-                    
+                    }
+
+                    // apply torques for this step
+                    for (i = 0; i < self._torqueQueue.length; i++) {
+                        torque = self._torqueQueue.pop();
+                        torque.body.ApplyTorque(torque.a);
+                    }
+
                     // set forces for this step
                     for (key in self._constantForces) {
                         f = self._constantForces[key];
@@ -256,7 +264,7 @@ Created at Bocoup http://bocoup.com
                             v.y = -entity._ops.maxVelocityY;
                         }
                     }
-                    
+
                     // destroy
                     for (i = 0; i < self._destroyQueue.length; i++) {
                         toDestroy = self._destroyQueue.pop();
@@ -269,6 +277,7 @@ Created at Bocoup http://bocoup.com
                         delete self._impactHandlers[id];
                         self._destroyQueue.splice(id, 1);
                         self._impulseQueue.splice(id, 1);
+                        self._torqueQueue.splice(id, 1);
                         delete self._constantVelocities[id];
                         delete self._constantForces[id];
                         delete self._entities[id];
@@ -287,24 +296,24 @@ Created at Bocoup http://bocoup.com
                         o = self._positionQueue.pop();
                         o.o.position.call(o.o, o.val);
                     }
-                    
+
                     // render stuff
                     for (key in self._entities) {
-                      entity = self._entities[key];
-                      entity._draw(self._ctx,
-                                   entity.canvasPosition().x,
-                                   entity.canvasPosition().y);
+                        entity = self._entities[key];
+                        entity._draw(self._ctx,
+                                     entity.canvasPosition().x,
+                                     entity.canvasPosition().y);
                     }
                     for (i = 0; i < self._onRender.length; i++) {
-                      self._onRender[i].fun.call(self._onRender[i].ctx, self._ctx);
+                        self._onRender[i].fun.call(self._onRender[i].ctx, self._ctx);
                     }
-                    
+
                     world.ClearForces();
                     world.DrawDebugData();
 
                     window.requestAnimationFrame(animationLoop);
                 }());
-                
+
                 // keyboard events
                 window.addEventListener('keydown', function(e) {
                     for (var key in self._keydownHandlers) {
@@ -350,7 +359,7 @@ Created at Bocoup http://bocoup.com
                 listener.PostSolve = function(contact, impulse) {
                     var a = self._entities[contact.GetFixtureA().GetBody()._bbid];
                     var b = self._entities[contact.GetFixtureB().GetBody()._bbid];
-                    
+
                     for (var key in self._impactHandlers) {
                         if (a._id === Number(key) && !a._destroyed) {
                             self._impactHandlers[key].call(self._entities[key],
@@ -369,11 +378,11 @@ Created at Bocoup http://bocoup.com
                 world.SetContactListener(listener);
             }
         },
-        
+
         _addKeydownHandler: function(id, f) {
             this._keydownHandlers[id] = f;
         },
-        
+
         _addKeyupHandler: function(id, f) {
             this._keyupHandlers[id] = f;
         },
@@ -381,7 +390,7 @@ Created at Bocoup http://bocoup.com
         _addStartContactHandler: function(id, f) {
             this._startContactHandlers[id] = f;
         },
-        
+
         _addFinishContactHandler: function(id, f) {
             this._finishContactHandlers[id] = f;
         },
@@ -389,20 +398,28 @@ Created at Bocoup http://bocoup.com
         _addImpactHandler: function(id, f) {
             this._impactHandlers[id] = f;
         },
-        
+
         _destroy: function(obj) {
             this._destroyQueue.push(obj);
         },
 
         _applyImpulse: function(id, body, x, y) {
-          this._impulseQueue.push({
+            this._impulseQueue.push({
                 id:id,
                 body:body,
                 x:x,
                 y:y
             });
         },
-        
+
+        _applyTorque: function(id, body, a) {
+            this._torqueQueue.push({
+                id:id,
+                body:body,
+                a:a
+            });
+        },
+
         _setConstantVelocity: function(name, id, body, x, y) {
             this._constantVelocities[name + id] = {
                 id:id,
@@ -411,7 +428,7 @@ Created at Bocoup http://bocoup.com
                 y:y
             };
         },
-        
+
         _clearConstantVelocity: function(name, id) {
             delete this._constantVelocities[name + id];
         },
@@ -424,7 +441,7 @@ Created at Bocoup http://bocoup.com
                 y:y
             };
         },
-        
+
         _clearConstantForce: function(name, id) {
             delete this._constantForces[name + id];
         },
@@ -443,7 +460,7 @@ Created at Bocoup http://bocoup.com
             var v = this._world.GetGravity();
             return {x: v.x, y: v.y};
         },
-        
+
         /**
          * @_module world
          * @_params options
@@ -512,7 +529,7 @@ Created at Bocoup http://bocoup.com
          These are passed onto the resulting entity as they are:
          <code>ball.$customValue === 15</code>
          This allows you to provide your own custom methods and properties.
-         */
+        */
         createEntity: function() {
             var o = {};
             var args = Array.prototype.slice.call(arguments);
@@ -530,7 +547,7 @@ Created at Bocoup http://bocoup.com
             this._entities[id] = entity;
             return entity;
         },
-        
+
         /**
          * @_module world
          * @_params entity1, entity2, [options]
@@ -560,9 +577,9 @@ Created at Bocoup http://bocoup.com
             options = options || {};
             options = extend(options, JOINT_DEFAULT_OPTIONS);
             var type = options.type;
-            
+
             var joint;
-            
+
             if (type === "distance") {
                 joint = new Box2D.Dynamics.Joints.b2DistanceJointDef();
             }
@@ -590,23 +607,23 @@ Created at Bocoup http://bocoup.com
             else if (type === "line") {
                 joint = new Box2D.Dynamics.Joints.b2LineJointDef();
             }
-            
+
             if (options.enableMotor) {
                 joint.enableMotor = true;
             }
-            
+
             var jointPositionOnEntity1 = entity1._body.GetWorldCenter();
             if (options.jointPositionOnEntity1) {
                 jointPositionOnEntity1.x += options.jointPositionOnEntity1.x;
                 jointPositionOnEntity1.y += options.jointPositionOnEntity1.y;
             }
-            
+
             var jointPositionOnEntity2 = entity2._body.GetWorldCenter();
             if (options.jointPositionOnEntity2) {
                 jointPositionOnEntity2.x += options.jointPositionOnEntity2.x;
                 jointPositionOnEntity2.y += options.jointPositionOnEntity2.y;
             }
-            
+
             if (type === "mouse") {
                 joint.bodyA = entity1._body;
                 joint.bodyB = entity2._body;
@@ -650,7 +667,7 @@ Created at Bocoup http://bocoup.com
             }, aabb);
             return result;
         },
-        
+
         /**
          * @_module world
          * @_params [value]
@@ -670,7 +687,7 @@ Created at Bocoup http://bocoup.com
                 this._cameraY = v.y;
             }
         },
-        
+
         /**
          * @_module world
          * @callback function( context )
@@ -696,7 +713,7 @@ Created at Bocoup http://bocoup.com
                 ctx: this
             });
         },
-        
+
         /**
          * @_module world
          * @callback callback
@@ -708,9 +725,9 @@ Created at Bocoup http://bocoup.com
             var newArray = [];
             var i;
             for (i = 0; i < this._onRender.length; i++) {
-              if (this._onRender[i].fun !== callback) {
-                newArray.push(this._onRender[i]);
-              }
+                if (this._onRender[i].fun !== callback) {
+                    newArray.push(this._onRender[i]);
+                }
             }
             this._onRender = newArray;
         },
@@ -749,13 +766,13 @@ Created at Bocoup http://bocoup.com
             var newArray = [];
             var i;
             for (i = 0; i < this._onTick.length; i++) {
-              if (this._onTick[i].fun !== callback) {
-                newArray.push(this._onTick[i]);
-              }
+                if (this._onTick[i].fun !== callback) {
+                    newArray.push(this._onTick[i]);
+                }
             }
             this._onTick = newArray;
         },
-        
+
         /**
          * @_module world
          * @_params [value]
@@ -780,15 +797,15 @@ Created at Bocoup http://bocoup.com
         canvasPositionAt: function(x, y) {
             var c = this.camera();
             var s = this.scale();
-            
+
             return {
                 x: Math.round((x + -c.x) * s),
                 y: Math.round((y + -c.y) * s)
             };
         }
-        
+
     };
-    
+
     var ENTITY_DEFAULT_OPTIONS = {
         name: 'unnamed object',
         x: 10,
@@ -859,11 +876,11 @@ Created at Bocoup http://bocoup.com
 
                 var tx = ox + (x + width / 4 * scale);
                 var ty = oy + (y + height / 4 * scale);
-                
+
                 ctx.translate(tx, ty);
-                
+
                 ctx.rotate(this._body.GetAngle());
-                
+
                 if (this._ops.spriteSheet) {
                     ctx.drawImage(this._sprite,
                                   this._ops.spriteX * this._ops.spriteWidth,
@@ -882,9 +899,9 @@ Created at Bocoup http://bocoup.com
                                   width * scale,
                                   height * scale);
                 }
-                              
-                ctx.rotate(0 - this._body.GetAngle());              
-                              
+
+                ctx.rotate(0 - this._body.GetAngle());
+
                 ctx.translate(-tx, -ty);
 
             }
@@ -908,7 +925,7 @@ Created at Bocoup http://bocoup.com
                 var vertices = new Vector(vertexCount);
                 var xf = this._body.m_xf;
                 for (i = 0; i < vertexCount; ++i) {
-                   vertices[i] = b2Math.MulX(xf, localVertices[i]);
+                    vertices[i] = b2Math.MulX(xf, localVertices[i]);
                 }
                 ctx.beginPath();
                 ctx.moveTo((cameraOffsetX + vertices[0].x) * scale, (cameraOffsetY + vertices[0].y) * scale);
@@ -937,18 +954,18 @@ Created at Bocoup http://bocoup.com
             }
         }
     };
-    
+
     /**
      * @header
      * @description a single physical object in the physics simulation
      */
     var Entity = {
-        
+
         _id: null,
         _ops: null,
         _body: null,
         _world: null,
-        
+
         _init: function(world, options, id) {
             var ops;
             var op;
@@ -962,10 +979,10 @@ Created at Bocoup http://bocoup.com
 
             this._ops = extend(options, ENTITY_DEFAULT_OPTIONS);
             ops = this._ops;
-            
+
             this._body = new b2BodyDef();
             var body = this._body;
-            
+
             this._world = world;
             this._id = id;
 
@@ -975,15 +992,15 @@ Created at Bocoup http://bocoup.com
                     this[op] = this._ops[op];
                 }
             }
-            
+
             var fixture = new b2FixtureDef();
             fixture.density = ops.density;
             fixture.friction = ops.friction;
             fixture.restitution = ops.restitution;
-            
+
             body.position.x = ops.x;
             body.position.y = ops.y;
-            
+
             this._name = ops.name;
 
             // type
@@ -993,7 +1010,7 @@ Created at Bocoup http://bocoup.com
             else if (ops.type === 'dynamic') {
                 body.type = b2Body.b2_dynamicBody;
             }
-            
+
             // shape
             if (ops.shape === 'square') {
                 fixture.shape = new shapes.b2PolygonShape();
@@ -1007,7 +1024,7 @@ Created at Bocoup http://bocoup.com
                 fixture.shape = new shapes.b2PolygonShape();
                 fixture.shape.SetAsArray(ops.points, ops.points.length);
             }
-            
+
             // rotation
             if (ops.rotation) {
                 body.angle = ops.rotation / DEGREES_PER_RADIAN;
@@ -1021,15 +1038,15 @@ Created at Bocoup http://bocoup.com
                 this._sprite = new Image();
                 this._sprite.src = ops.image;
             }
-            
+
             body.active = ops.active;
             body.fixedRotation = ops.fixedRotation;
             body.bullet = ops.bullet;
-            
+
             this._body = world._world.CreateBody(body);
             this._body.CreateFixture(fixture);
             this._body._bbid = id;
-            
+
             // events
             if (ops.onStartContact) {
                 this._world._addStartContactHandler(id, ops.onStartContact);
@@ -1058,7 +1075,7 @@ Created at Bocoup http://bocoup.com
                 ops.init.call(this);
             }
         },
-        
+
         // returns a vector. params can be either of the following:
         // power, x, y
         // power, degrees
@@ -1077,7 +1094,7 @@ Created at Bocoup http://bocoup.com
             }
             return {x:x,y:y};
         },
-        
+
         /**
          * @_module entity
          * @_params [value]
@@ -1085,12 +1102,12 @@ Created at Bocoup http://bocoup.com
          * @description get or set entity name
          */
         name: function(value) {
-          if (value !== undefined) {
-            this._name = value;
-          }
-          return this._name;
+            if (value !== undefined) {
+                this._name = value;
+            }
+            return this._name;
         },
-        
+
         /**
          * @_module entity
          * @_params [value]
@@ -1113,7 +1130,7 @@ Created at Bocoup http://bocoup.com
             var p = this._body.GetPosition();
             return {x: p.x, y: p.y};
         },
-        
+
         /**
          * @_module entity
          * @_params
@@ -1126,12 +1143,12 @@ Created at Bocoup http://bocoup.com
             if (value !== undefined) {
                 // TODO set
             }
-            
+
             var p = this.position();
 
             return this._world.canvasPositionAt(p.x, p.y);
         },
-        
+
         /**
          * @_module entity
          * @_params [value]
@@ -1145,7 +1162,7 @@ Created at Bocoup http://bocoup.com
             }
             return this._body.GetAngle() * DEGREES_PER_RADIAN;
         },
-        
+
         /**
          * @_module entity
          * @_params [value]
@@ -1357,7 +1374,7 @@ Created at Bocoup http://bocoup.com
             }
             return this._draw;
         },
-        
+
         /**
          * @_module entity
          * @description destroy this entity and remove it from the world
@@ -1383,7 +1400,17 @@ Created at Bocoup http://bocoup.com
             var v = this._toVector(power, a, b);
             this._world._applyImpulse(this._id, this._body, v.x, v.y);
         },
-        
+
+        /**
+         * @_module entity
+         * @a torque to be applied
+         * @description Apply an instantanious torque on this Entity.
+         * <code>entity.applyTorque(10);</code>
+         */
+        applyTorque: function(a) {
+            this._world._applyTorque(this._id, this._body, a);
+        },
+
         /**
          * @_module entity
          * @name of force
@@ -1397,7 +1424,7 @@ Created at Bocoup http://bocoup.com
             var v = this._toVector(power, a, b);
             this._world._setConstantForce(name, this._id, this._body, v.x, v.y);
         },
-        
+
         /**
          * @_module entity
          * @name of velocity
@@ -1427,7 +1454,7 @@ Created at Bocoup http://bocoup.com
         clearVelocity: function(name) {
             this._world._clearConstantVelocity(name, this._id);
         },
-        
+
         /**
          * @_module entity
          * @callback function( e )
@@ -1440,7 +1467,7 @@ Created at Bocoup http://bocoup.com
         onKeydown: function(callback) {
             this._world._addKeydownHandler(this._id, callback);
         },
-        
+
         /**
          * @_module entity
          * @callback function( e )
@@ -1546,7 +1573,7 @@ Created at Bocoup http://bocoup.com
             this._ops.spriteX = x;
             this._ops.spriteY = y;
         }
-        
+
     };
 
 }());
