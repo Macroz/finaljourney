@@ -153,9 +153,11 @@
          sh :screen-height} @data
         x (+ sw (rand-int (max 0 (- sw 250))))
         y (rand-int sh)
-        w (+ 5 (rand 10) (rand 10) (rand 10))
-        h (+ 5 (rand 10) (rand 10) (rand 10))
+        w (+ 5 (rand 10) (rand 20) (rand 30))
+        h (+ 5 (rand 10) (rand 20) (rand 30))
+        weight (* w h)
         object (make-poly! layer x y (rand 360) [0 0 w 0 w h 0 h])]
+    (.density (object :boxbox) weight)
     ;;(log "xy " x " " y)
     (impulse object (+ (rand 200000) (rand 300000)) (rand (* 2 Math/PI)))
     (impulse object (+ 1000000) 3.141)

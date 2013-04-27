@@ -1182,6 +1182,20 @@
          * @_params [value]
          * @value number
          * @return number
+         * @description get or set entity density
+         */
+        density: function(value) {
+            if (value !== undefined) {
+                this._body.GetFixtureList().SetDensity(value);
+            }
+            return this._body.GetFixtureList().GetDensity();
+        },
+
+        /**
+         * @_module entity
+         * @_params [value]
+         * @value number
+         * @return number
          * @description get or set entity restitution (bounciness)
          */
         restitution: function(value) {
