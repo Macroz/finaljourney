@@ -128,13 +128,30 @@
 
 
 (defn mouse-click-action [event]
-  (thrust (.-clientX event) (.-clientY event)))
+  (let [x (.-clientX event)
+        y (.-clientY event)]
+    (thrust x y)))
 
 (em/defaction setup-mouse-events []
   ["canvas"] (em/listen :click mouse-click-action))
 
+(defn tap-action [event]
+  (let [x (.-x (aget (.-position event) 0))
+        y (.-y (aget (.-position event) 0))]
+    (thrust x y)))
+
+(defn setup-touch-events []
+  (let [hammer (js/Hammer. (get-canvas)
+                           (clj->js {:prevent_default true
+                                     :tap true
+                                     :drag true
+                                     }))]
+    (set! (.-ontap hammer) tap-action)))
+
+
 (defn setup-controls []
-  (setup-mouse-events))
+  (setup-mouse-events)
+  (setup-touch-events))
 
 (defn startup []
   (log "startup")
