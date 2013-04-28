@@ -12,7 +12,7 @@ The main libraries used are:
 
 Audio is generated with [as3sxfr](http://www.superflashbros.net/as3sfxr/) and played through HTML5 Audio.
 
-Google Chrome is recommended because it is fast enough. Safari is dog slow, Firefox better.
+Google Chrome is recommended because it is fast enough. Safari is dog slow, Firefox slightly better. I hit some performance problems implementing backgrounds, but I'm happy with the end result anyway. Looks like I'm at the limit of what JavaScript (or ClojureScript) can deliver without going into optimization. Google Chrome often reported idling though.
 
 Unfortunately iPad seems to hang on collisions, otherwise it plays well. Let's fix it sometime!
 
