@@ -72,6 +72,10 @@
                                              :points (to-boxbox-points points)
                                              :shape "polygon"
                                              :density 10
+                                             :restitution 0.5
+                                             :friction 0.01
+                                             :maxVelocityX 100000
+                                             :maxVelocityY 100000
                                              :color "red"
                                              :rotation a
                                              :draw (fn [])
@@ -181,7 +185,7 @@
                      (swap! data (fn [data]
                                    (update-in data [:player :disabled] + force)))))))))
 
-(defn make-fallen! [size type]
+(defn make-fallen! [size type speed]
   (let [layer (get-main-layer)
         {sw :screen-width
          sh :screen-height} @data
@@ -209,8 +213,8 @@
                      (when (> force 10)
                        (play-sound :hit))))))
     ;;(log "xy " x " " y)
-    (impulse object (+ (rand 200000) (rand 300000)) (+ (* 0.75 Math/PI) (* (rand 1000) 0.001 0.5 Math/PI)))
-    (impulse object (+ 1000000) 3.141)
+    (impulse object (+ (rand 200000) (rand 300000)) (rand (* 2.0 Math/PI)))
+    (impulse object (+ (* speed 1000000)) 3.141)
     (torque object (rand 100000000))
     (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))
     ))
@@ -337,33 +341,38 @@
             (end!))))
       (let [speed 1
             fallen (get @data :fallen)
-            target-fallen (cond (< level 400) 1
-                                (< level 800) 3
+            target-fallen (cond (< level 300) 1
+                                (< level 500) 3
                                 (< level 1000) 5
                                 (< level 1500) 10
                                 (< level 2000) 20
-                                (< level 2500) 1
-                                (< level 3000) 5
+                                (< level 2300) 1
+                                (< level 2500) 5
                                 (< level 3500) 10
                                 (< level 4000) 20
-                                (< level 8000) 10
+                                (< level 5000) 10
+                                (< level 7000) 20
                                 :else 8)]
         (if (< (count fallen) target-fallen)
           (let [size-min (/ level 500)
                 size (cond (< level 3000) 15
                            (< level 5000) 30
+                           (< level 6000) 80
                            (< level 8000) 40
                            (< level 9000) 50
-                           (< level 10000) 120
+                           (< level 10000) 130
                            :else 50)
                 size (+ size-min (rand size) (rand size) (rand size))
                 type (cond (< level 1000) 0
-                           (< level 3000) (rand-int 3)
-                           (< level 5000) (+ 3 (rand-int 3))
-                           (< level 7000) 6
-                           (< level 8000) (rand-int 7)
-                           :else 7)]
-            (make-fallen! size type)))
+                           (< level 2500) (rand-int 3)
+                           (< level 4000) (+ 3 (rand-int 3))
+                           (< level 5000) 6
+                           (< level 7000) (rand-int 7)
+                           :else 7)
+                speed (cond (< level 5000) (/ level 2500)
+                            (< level 7000) (+ 2 (rand 5) (rand 5) (rand 5))
+                            :else 1)]
+            (make-fallen! size type speed)))
         (swap! data (fn [data]
                       (update-in data [:level] (fn [x] (+ x speed)))))
         (when (>= level 10000)
