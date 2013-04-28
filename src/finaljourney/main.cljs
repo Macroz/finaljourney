@@ -129,9 +129,12 @@
       (.setPoints (pattern3 :kinetic) (clj->js [0 0 w 0 w h 0 h]))))
   (stupid-hack!))
 
-(defn play-sound [id]
+(defn play-sound [id & options]
   (when-let [sound (get-in @data [:sounds id])]
-    (.play sound)))
+    (let [{volume :volume} (merge {:volume 1.0}
+                                  (apply hash-map options))]
+      (set! (.-volume sound) volume)
+      (.play sound))))
 
 (defn init-player! []
   (let [layer (get-main-layer)
@@ -140,7 +143,7 @@
         x 100
         y (/ h 2)
         object (make-poly! layer x y 0 [0 0 30 10 0 20])]
-    (impulse object 500000 0)
+    (impulse object 300000 0)
     (swap! data (fn [data] (assoc data :player {:object object})))
     (.onImpact (get-in @data [:player :object :boxbox])
                (fn [entity normalForce tangentForce]
@@ -244,8 +247,10 @@
         (.setFill (player-object :kinetic) "#fff")
         (when (< (Math/abs da) 20)
           (when-let [thrust (get-in @data [:player :thrust])]
-            (play-sound :thrust)
-            (impulse player-object (* (thrust :distance 0) 1000) (* Math/PI (/ a 180.0)))))
+            (let [distance (min 200 (thrust :distance 0))
+                  volume (min 1.0 (/ distance 200))]
+              (play-sound :thrust :volume volume)
+              (impulse player-object (* distance 1000) (* Math/PI (/ a 180.0))))))
         ;;(log "a " a " ta " ta " da " da)
         (torque player-object (* (+ p i d) 1000000))
         (swap! data (fn [data] (-> data
