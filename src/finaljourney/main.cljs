@@ -90,13 +90,12 @@
                   (assoc data :world world)))
     world))
 
-(defn get-canvas [i]
-  (let [i (or i 1)]
-    (-> (.getElementById js/document "container")
-        (.-childNodes)
-        (aget 0)
-        (.-childNodes)
-        (aget i))))
+(defn get-canvas []
+  (-> (.getElementById js/document "container")
+      (.-childNodes)
+      (aget 0)
+      (.-childNodes)
+      (aget 0)))
 
 (defn get-main-layer []
   (@data :main-layer))
@@ -198,80 +197,26 @@
         speed 1]
     (swap! data (fn [data]
                   (update-in data [:level] (fn [x] (+ x speed)))))
-    ;; (let [pattern (get-in @data [:pattern1])]
-    ;;   (when pattern
-    ;;     (.setFill (pattern :kinetic) (get-level-color))))
-    ;; (let [pattern (get-in @data [:pattern2])]
-    ;;   (when pattern
-    ;;     (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 50) -500]))
-    ;;     (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 300))))))
-    ;;     (.setFillPatternRotationDeg (pattern :kinetic) (mod (/ level 300) 360))
-    ;;     (.setOpacity (pattern :kinetic) (max 0 (/ (- 6000 level) 5000)))
-    ;;     ))
-    ;; (let [pattern (get-in @data [:pattern3])]
-    ;;   (when pattern
-    ;;     (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 77) -500]))
-    ;;     (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 700))))))
-    ;;     (.setFillPatternRotationDeg (pattern :kinetic) (- 360 (mod (/ level 200) 360)))
-    ;;     (.setOpacity (pattern :kinetic)
-    ;;                  (cond (< level 8000) 0
-    ;;                        (< level 13000) (/ (- level 8000) 5000)
-    ;;                        (< level 18000) (- 1.0 (/ (- level 13000) 5000))
-    ;;                        :else 0))
-    ;;     ))
-    (when (= 0 (mod level 100)) (log "tick"))
+    (when (= 0 (mod level 100))
+      (em/at js/document ["body"] (em/set-attr :style (str "background-color: " (get-level-color)))))
     ))
 
 
 (defn stupid-hack! []
-  (let [canvas (get-canvas)
-        background (get-canvas 0)]
+  (let [canvas (get-canvas)]
     ;; Stupid hack, why doesn't it get full size in Firefox otherwise?
     (set! (.-width canvas) (@data :screen-width))
-    (set! (.-height canvas) (@data :screen-height))
-    (set! (.-width background) (@data :screen-width))
-    (set! (.-height background) (@data :screen-height))))
+    (set! (.-height canvas) (@data :screen-height))))
 
 (defn setup-world []
   (let [stage (make-stage)
-        background (make-layer)
         layer (make-layer)]
-    (.add stage background)
     (.add stage layer)
-    (.setClearBeforeDraw background false)
     (swap! data (fn [data]
                   (-> data
                       (assoc :main-layer layer)
-                      (assoc :background background)
                       (assoc :stage stage)
                       )))
-    (when false
-      (let [image1 (js/Image.)
-            image2 (js/Image.)
-            pattern1 (make-pattern! background)
-            pattern2 (make-pattern! background)
-            pattern3 (make-pattern! background)]
-        (set! (.-onload image1) (fn []
-                                  (swap! data (fn [data]
-                                                (assoc data :image1 image1)))
-                                  (.setFillPatternImage (pattern2 :kinetic) (@data :image1))
-                                  (.setFillPatternOffset (pattern2 :kinetic) [0 0])
-                                  ;;(.draw background)
-                                  ))
-        (set! (.-src image1)  "/img/pattern1.png")
-        (set! (.-onload image2) (fn []
-                                  (swap! data (fn [data]
-                                                (assoc data :image2 image2)))
-                                  (.setFillPatternImage (pattern3 :kinetic) (@data :image2))
-                                  (.setFillPatternOffset (pattern3 :kinetic) [0 0])
-                                  ;;(.draw background)
-                                  ))
-        (set! (.-src image2)  "/img/pattern2.png")
-        (swap! data (fn [data]
-                      (-> data
-                          (assoc :pattern1 pattern1)
-                          (assoc :pattern2 pattern2)
-                          (assoc :pattern3 pattern3))))))
     (stupid-hack!)
     (let [canvas (get-canvas)
           world (make-boxbox canvas)]
