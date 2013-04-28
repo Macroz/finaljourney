@@ -228,7 +228,7 @@
 
 (defn end! []
   (when-not (@data :end?)
-    (play-sound :death)
+    (play-sound :death :volume 0.25)
     (log "end")
     (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
     (em/at js/document [".finished"] (em/chain (em/add-class "show black")
@@ -239,7 +239,7 @@
 
 (defn win! []
   (when-not (@data :win?)
-    (play-sound :win)
+    (play-sound :win :volume 0.25)
     (log "win")
     (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
     (em/at js/document [".finished"] (em/chain (em/add-class "show white")
@@ -303,7 +303,7 @@
             disabled (get-in @data [:player :disabled] 0)
             a (get-heading player-object)]
         (when-not (get-in @data [:player :born?] false)
-          (play-sound :birth)
+          (play-sound :birth :volume 0.25)
           (swap! data (fn [data] (assoc-in data [:player :born?] true))))
         (if (> disabled 0)
           (do
@@ -327,7 +327,7 @@
             (when (< (Math/abs da) 20)
               (when-let [thrust (get-in @data [:player :thrust])]
                 (let [distance (min 200 (thrust :distance 0))
-                      volume (min 1.0 (/ distance 200))]
+                      volume (min 0.5 (/ distance 200))]
                   (play-sound :thrust :volume volume)
                   (impulse player-object (* distance 1000) (* Math/PI (/ a 180.0))))))
             ;;(log "a " a " ta " ta " da " da)
@@ -375,7 +375,7 @@
                            (< level 5000) 30
                            (< level 6000) 80
                            (< level 8000) 40
-                           (< level 9000) 50
+                           (< level 9000) 100
                            (< level 10000) 130
                            :else 50)
                 size (+ size-min (rand size) (rand size) (rand size))
@@ -390,7 +390,7 @@
                             :else 1)]
             (make-fallen! size type speed)))
         (swap! data (fn [data]
-                      (update-in data [:level] (fn [x] (+ x speed)))))
+                      (update-in data [:level] (fn [x] (min 10000 (+ x speed))))))
         (let [gravity (clj->js {:x (min -1 (- (/ (- 6000 level) 10))) :y 0})]
           (.gravity (@data :world) gravity))
         (when (= 0 (mod level 100))
@@ -424,8 +424,7 @@
                              (set! (.-fillStyle ctx) "#000"))
                            (.fillText ctx (str (get @data :level 0)) 10 20))
                          ))
-      (.onTick world tick)
-      )
+      (.onTick world tick))
     (make-player!)
     (let [sw (@data :screen-width)
           sh (@data :screen-height)
@@ -526,12 +525,6 @@
                   (-> data
                       (assoc-in [:player :thrust] {:dx dx :dy dy :a a :distance (Math/sqrt (+ (* dx dx) (* dy dy)))})
                       (assoc-in [:player :target-angle] a))))))
-
-;; (defn mouse-click-action [event]
-;;   (let [player-object (get-in @data [:player :object])
-;;         x (.-clientX event)
-;;         y (.-clientY event)]
-;;     (thrust x y)))
 
 (defn mouse-down-action [event]
   (let [player-object (get-in @data [:player :object])
