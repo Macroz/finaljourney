@@ -179,7 +179,7 @@
     (swap! data (fn [data] (assoc data :player {:object object})))
     (.onImpact (get-in @data [:player :object :boxbox])
                (fn [entity normalForce tangentForce]
-                 (let [force (* (max (Math/abs normalForce) (Math/abs tangentForce)) 0.0001)]
+                 (let [force (* (max (Math/abs normalForce) (Math/abs tangentForce)) 0.0004)]
                    ;;(log "impact " force)
                    (play-sound :hit)
                    (when (> force 10)
@@ -418,8 +418,11 @@
           world (make-boxbox canvas)]
       (.onRender world (fn [ctx]
                          (.draw stage)
-                         (set! (.-fillStyle ctx) "#fff")
-                         (.fillText ctx (str "Level: "(get @data :level 0)) 10 20)
+                         (let [level (get @data :level 0)]
+                           (if (< level 5000)
+                             (set! (.-fillStyle ctx) "#fff")
+                             (set! (.-fillStyle ctx) "#000"))
+                           (.fillText ctx (str (get @data :level 0)) 10 20))
                          ))
       (.onTick world tick)
       )
