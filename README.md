@@ -23,4 +23,4 @@ The game is running on [Heroku](https://www.heroku.com/).
 [Begin Journey](http://finaljourney.herokuapp.com/)
 ===================================================
 
-#win
+\#win
