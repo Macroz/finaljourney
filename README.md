@@ -18,6 +18,7 @@ Unfortunately iPad seems to hang on collisions, otherwise it plays well. Let's f
 
 BoxBox is a wrapper on Javascript port of Box2D. I had to patch BoxBox with a few new features and fixes, so I will send pull requests sometime after the competition.
 
-The game is running in [Heroku](https://www.heroku.com/).
+The game is running on [Heroku](https://www.heroku.com/).
 
 [Begin Journey](http://finaljourney.herokuapp.com/)
+---------------------------------------------------
