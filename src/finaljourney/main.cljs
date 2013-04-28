@@ -556,23 +556,35 @@
   ["canvas"] (em/listen :mousedown mouse-down-action)
   ["canvas"] (em/listen :mouseup mouse-up-action)
   ["canvas"] (em/listen :mousemove mouse-move-action))
-;;   ["canvas"] (em/listen :click mouse-click-action))
 
-;; (defn tap-action [event]
-;;   (let [x (.-x (aget (.-position event) 0))
-;;         y (.-y (aget (.-position event) 0))]
-;;     (thrust x y)))
+(defn touch-hold-action [event]
+  (let [x (.-x (aget (.-position event) 0))
+        y (.-y (aget (.-position event) 0))]
+    (thrust x y)))
 
-(defn touch-drag-action [event])
+(defn touch-dragend-action [event]
+  (release-thrust))
+
+(defn touch-release-action [event]
+  (release-thrust))
+
+(defn touch-drag-action [event]
+  (let [x (.-x (.-position event))
+        y (.-y (.-position event))]
+    (thrust x y)))
 
 (defn setup-touch-events []
   (let [hammer (js/Hammer. (get-canvas)
                            (clj->js {:prevent_default true
-                                     :tap true
                                      :drag true
+                                     :touch true
+                                     :release true
+                                     :hold_timeout 10
                                      }))]
-    ;;(set! (.-ontap hammer) tap-action)
-    (set! (.-onstartdrag hammer) touch-dragstart-action)
+    (set! (.-onhold hammer) touch-hold-action)
+    (set! (.-ondragend hammer) touch-dragend-action)
+    (set! (.-onrelease hammer) touch-release-action)
+    (set! (.-ondrag hammer) touch-drag-action)
     ))
 
 
