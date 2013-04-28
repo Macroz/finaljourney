@@ -335,16 +335,26 @@
             (swap! data (fn [data] (-> data
                                        (update-in [:player :target-error] + da)
                                        (assoc-in [:player :target-error-last] da))))))
-        (let [{px "x" py "y"} (get-position player-object)
-              death (get @data :death)
-              scale (max 0 (/ (- 400 px) 400))]
-          (.setOpacity death scale scale)
-          (.setX death (min 0 (- (* px 2))))
-          (.setScale death (+ 0.2 (* scale 0.8)))
-          (when (or (< px 0)
-                    (< py 0)
-                    (>= py (@data :screen-height)))
-            (end!))))
+        (let [{px "x" py "y"} (get-position player-object)]
+          (let [death (get @data :death)
+                scale (max 0 (/ (- 400 px) 400))]
+            (.setOpacity death scale scale)
+            (.setX death (min 0 (- (* px 2))))
+            (.setScale death (+ 0.2 (* scale 0.8)))
+            (.moveToTop death)
+            (when (or (< px 0)
+                      (< py 0)
+                      (>= py (@data :screen-height)))
+              (end!)))
+          (let [life (get @data :life)
+                scale (max 0 (/ (- level 7000) 3000))]
+            (.setOpacity life scale)
+            (.setX life (- (+ (@data :screen-width) 100) (max 0 (/ (- level 7000) 20))))
+            (.setScale life (+ 0.2 (* scale 1.9)))
+            (.moveToTop life)
+            (when (and (>= level 10000) (> px (* (@data :screen-width) 0.8)))
+              (win!))
+            )))
       (let [speed 1
             fallen (get @data :fallen)
             target-fallen (cond (< level 300) 1
@@ -381,8 +391,6 @@
             (make-fallen! size type speed)))
         (swap! data (fn [data]
                       (update-in data [:level] (fn [x] (+ x speed)))))
-        (when (>= level 10000)
-          (win!))
         (let [gravity (clj->js {:x (min -1 (- (/ (- 6000 level) 10))) :y 0})]
           (.gravity (@data :world) gravity))
         (when (= 0 (mod level 100))
@@ -419,6 +427,23 @@
     (let [sw (@data :screen-width)
           sh (@data :screen-height)
           sh2 (/ sh 2)
+          life (js/Kinetic.Group. (clj->js {:x sw
+                                            :y sh2
+                                            :opacity 0
+                                            }))
+          lifes (map (fn [[x y r]]
+                       (js/Kinetic.Circle. (clj->js {:x x
+                                                     :y y
+                                                     :radius r
+                                                     :fill "#fff"
+                                                     :stroke "#fff"
+                                                     :strokeWidth 2})))
+                     [[(/ sw -9) (/ sh2 -1.0) (/ sh 2.8)]
+                      [(/ sw -6) (/ sh2 -3.0) (/ sh 4)]
+                      [(/ sw -10) (/ sh2 1.0) (/ sh 2.9)]
+                      [(/ sw -12) (/ sh2 7) (/ sh 3.2)]
+                      [(/ sw 5) 0 sh]
+                      ])
           death (js/Kinetic.Polygon. (clj->js {:x 0
                                                :y sh2
                                                :points [-5 (- sh2)
@@ -453,10 +478,14 @@
                                                :opacity 0
                                                }))]
       (.add layer death)
+      (doseq [l lifes]
+        (.add life l))
+      (.add layer life)
       (swap! data (fn [data]
                     (-> data
                         (assoc :fallen [])
-                        (assoc :death death)))))))
+                        (assoc :death death)
+                        (assoc :life life)))))))
 
 (defn to-degrees [radians]
   (/ (* 180.0 radians) Math/PI))
@@ -555,6 +584,7 @@
                     (assoc-in [:sounds :death] (js/Audio. "/snd/longbeep.wav"))
                     (assoc-in [:sounds :birth] (js/Audio. "/snd/birth.wav"))
                     (assoc-in [:sounds :hit] (js/Audio. "/snd/hit.wav"))
+                    (assoc-in [:sounds :win] (js/Audio. "/snd/win.wav"))
                     (assoc-in [:sounds :repaired] (js/Audio. "/snd/powerup.wav"))))))
 
 (defn startup [params]
