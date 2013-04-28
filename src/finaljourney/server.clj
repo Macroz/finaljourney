@@ -58,7 +58,7 @@
              [:div.space]
              [:h1 "Final Journey"]
              [:div.space]
-             [:a.end {:href "/"} [:h1.result "End"]]
+             [:h1.result "End"]
              [:div.space]
              [:div.score]
              ]]

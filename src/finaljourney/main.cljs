@@ -167,7 +167,7 @@
   (let [layer (get-main-layer)
         {w :screen-width
          h :screen-height} @data
-        x 100
+        x (/ w 2)
         y (/ h 2)
         object (make-poly! layer x y 0 [-15 -10 15 0 -15 10])]
     (impulse object 1000000 0)
@@ -368,7 +368,7 @@
                       (update-in data [:level] (fn [x] (+ x speed)))))
         (when (>= level 10000)
           (win!))
-        (let [gravity (clj->js {:x (- (/ (- 10000 level) 80)) :y 0})]
+        (let [gravity (clj->js {:x (min -1 (- (/ (- 6000 level) 10))) :y 0})]
           (.gravity (@data :world) gravity))
         (when (= 0 (mod level 100))
           (em/at js/document ["body"] (em/set-attr :style (str "background-color: " (get-level-color)))))
