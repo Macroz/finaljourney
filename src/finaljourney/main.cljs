@@ -91,11 +91,22 @@
                                                                     (.setY krect y)
                                                                     (.setRotationDeg krect a)
                                                                     ))))
-                                             }))]
+                                             }))
+        trail (for [i (range 7)]
+                (let [c (apply str "#" (repeat 3 (- 9 i)))]
+                  (js/Kinetic.Polygon. (clj->js {:x x
+                                                 :y y
+                                                 :points [-2 -1 2 0 -2 1]
+                                                 :fill c
+                                                 :stroke c}))))]
     (.add layer shadow)
     (.add layer krect)
+    (doseq [t trail]
+      (.add layer t))
     (.moveToBottom shadow)
-    {:kinetic krect :boxbox brect :points points :shadow shadow}))
+    (doseq [t trail]
+      (.moveToBottom t))
+    {:kinetic krect :boxbox brect :points points :shadow shadow :trail trail}))
 
 (defn make-boxbox [canvas]
   (let [world (.createWorld js/boxbox canvas (clj->js {:scale 1
@@ -119,7 +130,7 @@
 (defn get-level-color []
   (let [{x "x" y "y"} (get-position (get-in @data [:player :object]))
         p (get @data :level)
-        scale 50000]
+        scale 10000]
     (cond (< p 0) "#000"
           (< p scale) (let [c (int (Math/round (* 255 (- 1.0 (/ (- scale p) scale)))))] (str "rgb(" c "," c "," c ")"))
           :else "#fff")))
@@ -158,7 +169,7 @@
          h :screen-height} @data
         x 100
         y (/ h 2)
-        object (make-poly! layer x y 0 [0 0 30 10 0 20])]
+        object (make-poly! layer x y 0 [-15 -10 15 0 -15 10])]
     (impulse object 300000 0)
     (swap! data (fn [data] (assoc data :player {:object object})))
     (.onImpact (get-in @data [:player :object :boxbox])
@@ -174,20 +185,22 @@
   (let [layer (get-main-layer)
         {sw :screen-width
          sh :screen-height} @data
-        x (+ sw (rand-int (max 0 (- sw 250))))
+        x (+ sw (rand-int (max 0 (- sw 100))))
         y (rand-int sh)
         w size
         h size
+        w2 (/ size 2)
+        h2 (/ size 2)
         weight (* w h)
         object (make-poly! layer x y (rand 360) (case type
-                                                  0 [0 h (/ w 3) 0 w h]
-                                                  1 [0 h (/ w 2) 0 w h]
-                                                  2 [0 h (/ w 1.5) 0 w h]
-                                                  3 [0 0 w 0 w h 0 h]
-                                                  4 [0 h (* w 0.25) 0 w 0 (* w 0.75) h]
-                                                  5 [0 h (* w 0.33) 0 w 0 (* w 0.66) h]
-                                                  6 [0 (* h 0.5) (* w 0.5) 0 w (* h 0.5) (* w 0.75) h (* w 0.25) h]
-                                                  7 [0 (/ h 2) (/ w 3) 0 (/ w 1.5) 0 w (/ h 2) (/ w 1.5) h (/ w 3) h]))]
+                                                  0 [(- w2) h2 (- w2) (- h2) w2 h2]
+                                                  1 [(- w2) h2 0 (- h2) w2 h2]
+                                                  2 [(- w2) h2 w2 (- h2) w2 h2]
+                                                  3 [(- w2) (- h2) w2 (- h2) w2 h2 (- w2) h2]
+                                                  4 [(- w2) (- h2) (* w2 0.33) (- h2) w2 h2 (* -0.33 w2) h2]
+                                                  5 [(- w2) (- h2) (* w2 0.66) (- h2) w2 h2 (* -0.66 w2) h2]
+                                                  6 [(- w2) (* h2 0.25) (* w2 -0.33) (- h2) (* w2 0.33) ( - h2) w2 (* h2 0.25) 0 h2]
+                                                  7 [(- w2) 0 (/ w -4.5) (- h2) (/ w 4.5) (- h2) w2 0 (/ w 4.5) h2 (/ w -4.5) h2]))]
     (when-let [b (object :boxbox)]
       (.density b weight)
       (.onImpact b
@@ -196,7 +209,7 @@
                      (when (> force 10)
                        (play-sound :hit))))))
     ;;(log "xy " x " " y)
-    (impulse object (+ (rand 200000) (rand 300000)) (rand (* 2 Math/PI)))
+    (impulse object (+ (rand 200000) (rand 300000)) (+ (* 0.75 Math/PI) (* (rand 1000) 0.001 0.5 Math/PI)))
     (impulse object (+ 1000000) 3.141)
     (torque object (rand 100000000))
     (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))
@@ -215,89 +228,133 @@
     (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
     (em/at js/document [".black"] (em/chain (em/add-class "show")
                                             (em/fade-in 4000)))
+    (em/at js/document [".score"] (em/content (str (get @data :level))))
     (swap! data (fn [data] (assoc data :end? true)))))
 
 (defn signum [x]
   (if (< x 0) -1 1))
 
+(defn update-trail [fallen]
+  (when-let [object (fallen :object)]
+    (when-let [trail (object :trail)]
+      (let [b (object :boxbox)
+            {x "x"
+             y "y"} (js->clj (.position b))
+            a (to-degrees (.rotation b))
+            positions (doall (for [t trail]
+                               {:x (.getX t)
+                                :y (.getY t)
+                                :a (.getRotationDeg t)}))
+            positions (doall (conj positions {:x x :y y :a a}))]
+        (doall (map (fn [t p]
+                      (.setX t (p :x))
+                      (.setY t (p :y))
+                      (.setRotationDeg t (p :a))
+                      true)
+                    trail
+                    positions))))))
+
 (defn tick []
-  (let [removes (filter remove-fallen? (@data :fallen))
-        fallen (remove remove-fallen? (@data :fallen))]
-    (swap! data (fn [data]
-                  (assoc data :fallen fallen)))
-    ;; WTF have to put this here otherwise doseq is skipped
-    (count fallen)
-    (doseq [f removes]
-      ;;(log "removing " f)
-      (let [{boxbox :boxbox
-             kinetic :kinetic
-             shadow :shadow} (f :object)]
-        (when boxbox
-          (.destroy boxbox))
-        (when kinetic
-          (.destroy kinetic))
-        (when shadow
-          (.destroy shadow)))))
-  (let [player-object (get-in @data [:player :object])
-        disabled (get-in @data [:player :disabled] 0)
-        a (get-heading player-object)]
-    (when-not (get-in @data [:player :born?] false)
-      (play-sound :birth)
-      (swap! data (fn [data] (assoc-in data [:player :born?] true))))
-    (if (> disabled 0)
-      (do
-        (.setFill (player-object :kinetic) "#aaa")
-        (swap! data (fn [data]
-                      (assoc-in data [:player :disabled] (max 0 (dec disabled)))))
-        (when (<= (get-in @data [:player :disabled] 0) 0)
-          (play-sound :repaired)))
-      (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
-            ta (proper-angle ta)
-            da (- ta a)
-            da (if (> da 180) (- da 360) da)
-            da (if (< da -180) (+ 360 da) da)
-            da (if (and (< ta a) (> (- ta a) 180)) (- da) da)
-            te (get-in @data [:player :target-error] 0)
-            p (* 0.1 da)
-            i (* 0.001 te)
-            d (* 1 (- da (get-in @data [:player :target-error-last] 0)))
-            ]
-        (.setFill (player-object :kinetic) "#fff")
-        (when (< (Math/abs da) 20)
-          (when-let [thrust (get-in @data [:player :thrust])]
-            (let [distance (min 200 (thrust :distance 0))
-                  volume (min 1.0 (/ distance 200))]
-              (play-sound :thrust :volume volume)
-              (impulse player-object (* distance 1000) (* Math/PI (/ a 180.0))))))
-        ;;(log "a " a " ta " ta " da " da)
-        (torque player-object (* (+ p i d) 1000000))
-        (swap! data (fn [data] (-> data
-                                   (update-in [:player :target-error] + da)
-                                   (assoc-in [:player :target-error-last] da))))))
-    (let [{px "x" py "y"} (get-position player-object)]
-      (when (or (< px 0)
-                (< py 0)
-                (>= py (@data :screen-height)))
-        (end!))))
-  (let [level (get @data :level 0)
-        speed 1
-        fallen (get @data :fallen)
-        target-fallen (cond (< level 400) 1
-                            (< level 800) 3
-                            (< level 1000) 5
-                            (< level 1500) 10
-                            (< level 2000) 20
-                            :else 30)]
-    (if (< (count fallen) target-fallen)
-      (let [size (cond (< level 10000) 20)
-            size (+ 3 (rand size) (rand size) (rand size))
-            type 0]
-        (make-fallen! size type)))
-    (swap! data (fn [data]
-                  (update-in data [:level] (fn [x] (+ x speed)))))
-    (when (= 0 (mod level 100))
-      (em/at js/document ["body"] (em/set-attr :style (str "background-color: " (get-level-color)))))
-    ))
+  (let [level (get @data :level 0)]
+    (let [removes (filter remove-fallen? (@data :fallen))
+          fallen (remove remove-fallen? (@data :fallen))]
+      (swap! data (fn [data]
+                    (assoc data :fallen fallen)))
+      ;; WTF have to put this here otherwise doseq is skipped
+      (count fallen)
+      (doseq [f removes]
+        ;;(log "removing " f)
+        (let [{boxbox :boxbox
+               kinetic :kinetic
+               shadow :shadow
+               trail :trail} (f :object)]
+          (when boxbox
+            (.destroy boxbox))
+          (when kinetic
+            (.destroy kinetic))
+          (when shadow
+            (.destroy shadow))
+          (when trail
+            (doseq [t trail]
+              (.destroy t))))))
+    (when (= 0 (mod level 5))
+      (doseq [f (@data :fallen)]
+        (update-trail f))
+      (update-trail (get @data :player)))
+    (let [player-object (get-in @data [:player :object])
+          disabled (get-in @data [:player :disabled] 0)
+          a (get-heading player-object)]
+      (when-not (get-in @data [:player :born?] false)
+        (play-sound :birth)
+        (swap! data (fn [data] (assoc-in data [:player :born?] true))))
+      (if (> disabled 0)
+        (do
+          (.setFill (player-object :kinetic) "#aaa")
+          (swap! data (fn [data]
+                        (assoc-in data [:player :disabled] (max 0 (dec disabled)))))
+          (when (<= (get-in @data [:player :disabled] 0) 0)
+            (play-sound :repaired)))
+        (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
+              ta (proper-angle ta)
+              da (- ta a)
+              da (if (> da 180) (- da 360) da)
+              da (if (< da -180) (+ 360 da) da)
+              da (if (and (< ta a) (> (- ta a) 180)) (- da) da)
+              te (get-in @data [:player :target-error] 0)
+              p (* 0.1 da)
+              i (* 0.001 te)
+              d (* 1 (- da (get-in @data [:player :target-error-last] 0)))
+              ]
+          (.setFill (player-object :kinetic) "#fff")
+          (when (< (Math/abs da) 20)
+            (when-let [thrust (get-in @data [:player :thrust])]
+              (let [distance (min 200 (thrust :distance 0))
+                    volume (min 1.0 (/ distance 200))]
+                (play-sound :thrust :volume volume)
+                (impulse player-object (* distance 1000) (* Math/PI (/ a 180.0))))))
+          ;;(log "a " a " ta " ta " da " da)
+          (torque player-object (* (+ p i d) 1000000))
+          (swap! data (fn [data] (-> data
+                                     (update-in [:player :target-error] + da)
+                                     (assoc-in [:player :target-error-last] da))))))
+      (let [{px "x" py "y"} (get-position player-object)]
+        (when (or (< px 0)
+                  (< py 0)
+                  (>= py (@data :screen-height)))
+          (end!))))
+    (let [speed 1
+          fallen (get @data :fallen)
+          target-fallen (cond (< level 400) 1
+                              (< level 800) 3
+                              (< level 1000) 5
+                              (< level 1500) 10
+                              (< level 2000) 20
+                              (< level 2500) 1
+                              (< level 3000) 5
+                              (< level 3500) 10
+                              (< level 4000) 20
+                              (< level 8000) 10
+                              :else 5)]
+      (if (< (count fallen) target-fallen)
+        (let [size-min (/ level 1000)
+              size (cond (< level 3000) 20
+                         (< level 5000) 30
+                         (< level 8000) 40
+                         (< level 10000) 50
+                         :else 50)
+              size (+ size-min (rand size) (rand size) (rand size))
+              type (cond (< level 1000) 0
+                         (< level 3000) (rand-int 3)
+                         (< level 5000) (+ 3 (rand-int 3))
+                         (< level 7000) 6
+                         (< level 8000) (rand-int 7)
+                         :else 7)]
+          (make-fallen! size type)))
+      (swap! data (fn [data]
+                    (update-in data [:level] (fn [x] (+ x speed)))))
+      (when (= 0 (mod level 100))
+        (em/at js/document ["body"] (em/set-attr :style (str "background-color: " (get-level-color)))))
+      )))
 
 
 (defn stupid-hack! []

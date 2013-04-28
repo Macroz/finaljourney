@@ -22,6 +22,7 @@
           [:body
            [:div.center
             [:div.content
+             [:div.space]
              [:h1 "Final Journey"]
              [:div.space]
              [:a.begin {:href "/game"} [:h1 "Begin"]]
@@ -45,9 +46,13 @@
           [:body {:onload (str "finaljourney.main.startup(" (params :delay) ");")}
            [:div.black.center
             [:div.content
+             [:div.space]
              [:h1 "Final Journey"]
              [:div.space]
-             [:a.end {:href "/"} [:h1 "End"]]]]
+             [:a.end {:href "/"} [:h1 "End"]]
+             [:div.space]
+             [:div.score]
+             ]]
            [:div#container]]]))
 
 (defroutes handler
