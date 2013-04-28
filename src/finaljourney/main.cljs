@@ -179,7 +179,7 @@
     (swap! data (fn [data] (assoc data :player {:object object})))
     (.onImpact (get-in @data [:player :object :boxbox])
                (fn [entity normalForce tangentForce]
-                 (let [force (* (max (Math/abs normalForce) (Math/abs tangentForce)) 0.0004)]
+                 (let [force (* (max (Math/abs normalForce) (Math/abs tangentForce)) 0.0002)]
                    ;;(log "impact " force)
                    (play-sound :hit)
                    (when (> force 10)
@@ -311,7 +311,7 @@
             (swap! data (fn [data]
                           (assoc-in data [:player :disabled] (max 0 (dec disabled)))))
             (when (<= (get-in @data [:player :disabled] 0) 0)
-              (play-sound :repaired)))
+              (play-sound :repaired :volume 0.5)))
           (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
                 ta (proper-angle ta)
                 da (- ta a)
@@ -326,8 +326,8 @@
             (.setFill (player-object :kinetic) "#fff")
             (when (< (Math/abs da) 20)
               (when-let [thrust (get-in @data [:player :thrust])]
-                (let [distance (min 200 (thrust :distance 0))
-                      volume (min 0.5 (/ distance 200))]
+                (let [distance (min 400 (thrust :distance 0))
+                      volume (min 0.4 (/ distance 400))]
                   (play-sound :thrust :volume volume)
                   (impulse player-object (* distance 1000) (* Math/PI (/ a 180.0))))))
             ;;(log "a " a " ta " ta " da " da)
@@ -371,7 +371,9 @@
                                 :else 8)]
         (if (< (count fallen) target-fallen)
           (let [size-min (/ level 500)
-                size (cond (< level 3000) 15
+                size (cond (< level 2500) 15
+                           (< level 3000) 25
+                           (< level 4000) 50
                            (< level 5000) 30
                            (< level 6000) 80
                            (< level 8000) 40
@@ -385,8 +387,9 @@
                            (< level 5000) 6
                            (< level 7000) (rand-int 7)
                            :else 7)
-                speed (cond (< level 5000) (/ level 2500)
-                            (< level 7000) (+ 2 (rand 5) (rand 5) (rand 5))
+                speed (cond (< level 4000) (/ level 2500)
+                            (< level 5000) (+ 2 (rand 5) (rand 5) (rand 5))
+                            (< level 7000) (+ 2 (rand 9) (rand 9) (rand 9))
                             :else 1)]
             (make-fallen! size type speed)))
         (swap! data (fn [data]
