@@ -171,6 +171,9 @@
                                             (em/fade-in 4000)))
     (swap! data (fn [data] (assoc data :end? true)))))
 
+(defn signum [x]
+  (if (< x 0) -1 1))
+
 (defn tick []
   (let [removes (filter remove-fallen? (@data :fallen))
         fallen (remove remove-fallen? (@data :fallen))]
@@ -188,11 +191,33 @@
           (.destroy kinetic))
         (make-fallen!))))
   (let [player-object (get-in @data [:player :object])
-        {px "x" py "y"} (get-position player-object)]
-    (when (or (< px 0)
-              (< py 0)
-              (>= py (@data :screen-height)))
-      (end!)))
+        disabled? (get @data :disabled? false)
+        a (get-heading player-object)]
+    (when-not disabled?
+      (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
+            ta (proper-angle ta)
+            da (- ta a)
+            da (if (> da 180) (- da 360) da)
+            da (if (< da -180) (+ 360 da) da)
+            da (if (and (< ta a) (> (- ta a) 180)) (- da) da)
+            te (get-in @data [:player :target-error] 0)
+            p (* 0.1 da)
+            i (* 0.001 te)
+            d (* 1 (- da (get-in @data [:player :target-error-last] 0)))
+            ]
+        (when (< (Math/abs da) 20)
+          (when-let [thrust (get-in @data [:player :thrust])]
+            (impulse player-object (* (thrust :distance 0) 1000) (* Math/PI (/ a 180.0)))))
+        ;;(log "a " a " ta " ta " da " da)
+        (torque player-object (* (+ p i d) 1000000))
+        (swap! data (fn [data] (-> data
+                                   (update-in [:player :target-error] + da)
+                                   (assoc-in [:player :target-error-last] da))))))
+    (let [{px "x" py "y"} (get-position player-object)]
+      (when (or (< px 0)
+                (< py 0)
+                (>= py (@data :screen-height)))
+        (end!))))
   (let [level (get @data :level 0)
         speed 1]
     (swap! data (fn [data]
@@ -236,6 +261,17 @@
   (when-let [b (get object :boxbox)]
     (js->clj (.position b))))
 
+(defn proper-angle [a]
+  (loop [a (mod a 360)]
+    (if (< a 0)
+      (recur (+ 360 a))
+      a)))
+
+(defn get-heading [object]
+  (when-let [b (get object :boxbox)]
+    (let [a (js->clj (.rotation b))]
+      (proper-angle a))))
+
 (defn impulse [object power angle]
   (when-let [b (get object :boxbox)]
     (.applyImpulse b power (+ 90 (to-degrees angle)))))
@@ -250,22 +286,48 @@
         dx (- tx px)
         dy (- ty py)
         a (Math/atan2 dy dx)]
-    (impulse player-object 1000000 a)))
+    (swap! data (fn [data]
+                  (-> data
+                      (assoc-in [:player :thrust] {:dx dx :dy dy :a a :distance (Math/sqrt (+ (* dx dx) (* dy dy)))})
+                      (assoc-in [:player :target-angle] a))))))
 
+;; (defn mouse-click-action [event]
+;;   (let [player-object (get-in @data [:player :object])
+;;         x (.-clientX event)
+;;         y (.-clientY event)]
+;;     (thrust x y)))
 
-(defn mouse-click-action [event]
+(defn mouse-down-action [event]
   (let [player-object (get-in @data [:player :object])
         x (.-clientX event)
         y (.-clientY event)]
     (thrust x y)))
 
-(em/defaction setup-mouse-events []
-  ["canvas"] (em/listen :click mouse-click-action))
+(defn release-thrust []
+  (swap! data (fn [data] (assoc-in data [:player :thrust] nil))))
 
-(defn tap-action [event]
-  (let [x (.-x (aget (.-position event) 0))
-        y (.-y (aget (.-position event) 0))]
-    (thrust x y)))
+(defn mouse-up-action [event]
+  (release-thrust))
+
+(defn mouse-move-action [event]
+  (when (get-in @data [:player :thrust])
+    (let [player-object (get-in @data [:player :object])
+          x (.-clientX event)
+          y (.-clientY event)]
+      (thrust x y))))
+
+(em/defaction setup-mouse-events []
+  ["canvas"] (em/listen :mousedown mouse-down-action)
+  ["canvas"] (em/listen :mouseup mouse-up-action)
+  ["canvas"] (em/listen :mousemove mouse-move-action))
+;;   ["canvas"] (em/listen :click mouse-click-action))
+
+;; (defn tap-action [event]
+;;   (let [x (.-x (aget (.-position event) 0))
+;;         y (.-y (aget (.-position event) 0))]
+;;     (thrust x y)))
+
+(defn touch-drag-action [event])
 
 (defn setup-touch-events []
   (let [hammer (js/Hammer. (get-canvas)
@@ -273,7 +335,9 @@
                                      :tap true
                                      :drag true
                                      }))]
-    (set! (.-ontap hammer) tap-action)))
+    ;;(set! (.-ontap hammer) tap-action)
+    (set! (.-onstartdrag hammer) touch-dragstart-action)
+    ))
 
 
 (defn setup-controls []
