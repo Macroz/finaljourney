@@ -226,10 +226,22 @@
     (play-sound :death)
     (log "end")
     (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
-    (em/at js/document [".black"] (em/chain (em/add-class "show")
+    (em/at js/document [".finished"] (em/chain (em/add-class "show black")
                                             (em/fade-in 4000)))
+    (em/at js/document [".result"] (em/content "End"))
     (em/at js/document [".score"] (em/content (str (get @data :level))))
     (swap! data (fn [data] (assoc data :end? true)))))
+
+(defn win! []
+  (when-not (@data :win?)
+    (play-sound :win)
+    (log "win")
+    (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
+    (em/at js/document [".finished"] (em/chain (em/add-class "show white")
+                                            (em/fade-in 4000)))
+    (em/at js/document [".result"] (em/content "Win"))
+    (em/at js/document [".score"] (em/content (str (min 10000 (get @data :level)))))
+    (swap! data (fn [data] (assoc data :win? true)))))
 
 (defn signum [x]
   (if (< x 0) -1 1))
@@ -255,106 +267,111 @@
                     positions))))))
 
 (defn tick []
-  (let [level (get @data :level 0)]
-    (let [removes (filter remove-fallen? (@data :fallen))
-          fallen (remove remove-fallen? (@data :fallen))]
-      (swap! data (fn [data]
-                    (assoc data :fallen fallen)))
-      ;; WTF have to put this here otherwise doseq is skipped
-      (count fallen)
-      (doseq [f removes]
-        ;;(log "removing " f)
-        (let [{boxbox :boxbox
-               kinetic :kinetic
-               shadow :shadow
-               trail :trail} (f :object)]
-          (when boxbox
-            (.destroy boxbox))
-          (when kinetic
-            (.destroy kinetic))
-          (when shadow
-            (.destroy shadow))
-          (when trail
-            (doseq [t trail]
-              (.destroy t))))))
-    (when (= 0 (mod level 5))
-      (doseq [f (@data :fallen)]
-        (update-trail f))
-      (update-trail (get @data :player)))
-    (let [player-object (get-in @data [:player :object])
-          disabled (get-in @data [:player :disabled] 0)
-          a (get-heading player-object)]
-      (when-not (get-in @data [:player :born?] false)
-        (play-sound :birth)
-        (swap! data (fn [data] (assoc-in data [:player :born?] true))))
-      (if (> disabled 0)
-        (do
-          (.setFill (player-object :kinetic) "#aaa")
-          (swap! data (fn [data]
-                        (assoc-in data [:player :disabled] (max 0 (dec disabled)))))
-          (when (<= (get-in @data [:player :disabled] 0) 0)
-            (play-sound :repaired)))
-        (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
-              ta (proper-angle ta)
-              da (- ta a)
-              da (if (> da 180) (- da 360) da)
-              da (if (< da -180) (+ 360 da) da)
-              da (if (and (< ta a) (> (- ta a) 180)) (- da) da)
-              te (get-in @data [:player :target-error] 0)
-              p (* 0.1 da)
-              i (* 0.001 te)
-              d (* 1 (- da (get-in @data [:player :target-error-last] 0)))
-              ]
-          (.setFill (player-object :kinetic) "#fff")
-          (when (< (Math/abs da) 20)
-            (when-let [thrust (get-in @data [:player :thrust])]
-              (let [distance (min 200 (thrust :distance 0))
-                    volume (min 1.0 (/ distance 200))]
-                (play-sound :thrust :volume volume)
-                (impulse player-object (* distance 1000) (* Math/PI (/ a 180.0))))))
-          ;;(log "a " a " ta " ta " da " da)
-          (torque player-object (* (+ p i d) 1000000))
-          (swap! data (fn [data] (-> data
-                                     (update-in [:player :target-error] + da)
-                                     (assoc-in [:player :target-error-last] da))))))
-      (let [{px "x" py "y"} (get-position player-object)]
-        (when (or (< px 0)
-                  (< py 0)
-                  (>= py (@data :screen-height)))
-          (end!))))
-    (let [speed 1
-          fallen (get @data :fallen)
-          target-fallen (cond (< level 400) 1
-                              (< level 800) 3
-                              (< level 1000) 5
-                              (< level 1500) 10
-                              (< level 2000) 20
-                              (< level 2500) 1
-                              (< level 3000) 5
-                              (< level 3500) 10
-                              (< level 4000) 20
-                              (< level 8000) 10
-                              :else 5)]
-      (if (< (count fallen) target-fallen)
-        (let [size-min (/ level 1000)
-              size (cond (< level 3000) 20
-                         (< level 5000) 30
-                         (< level 8000) 40
-                         (< level 10000) 50
-                         :else 50)
-              size (+ size-min (rand size) (rand size) (rand size))
-              type (cond (< level 1000) 0
-                         (< level 3000) (rand-int 3)
-                         (< level 5000) (+ 3 (rand-int 3))
-                         (< level 7000) 6
-                         (< level 8000) (rand-int 7)
-                         :else 7)]
-          (make-fallen! size type)))
-      (swap! data (fn [data]
-                    (update-in data [:level] (fn [x] (+ x speed)))))
-      (when (= 0 (mod level 100))
-        (em/at js/document ["body"] (em/set-attr :style (str "background-color: " (get-level-color)))))
-      )))
+  (when-not (or (@data :end?) (@data :win?))
+    (let [level (get @data :level 0)]
+      (let [removes (filter remove-fallen? (@data :fallen))
+            fallen (remove remove-fallen? (@data :fallen))]
+        (swap! data (fn [data]
+                      (assoc data :fallen fallen)))
+        ;; WTF have to put this here otherwise doseq is skipped
+        (count fallen)
+        (doseq [f removes]
+          ;;(log "removing " f)
+          (let [{boxbox :boxbox
+                 kinetic :kinetic
+                 shadow :shadow
+                 trail :trail} (f :object)]
+            (when boxbox
+              (.destroy boxbox))
+            (when kinetic
+              (.destroy kinetic))
+            (when shadow
+              (.destroy shadow))
+            (when trail
+              (doseq [t trail]
+                (.destroy t))))))
+      (when (= 0 (mod level 5))
+        (doseq [f (@data :fallen)]
+          (update-trail f))
+        (update-trail (get @data :player)))
+      (let [player-object (get-in @data [:player :object])
+            disabled (get-in @data [:player :disabled] 0)
+            a (get-heading player-object)]
+        (when-not (get-in @data [:player :born?] false)
+          (play-sound :birth)
+          (swap! data (fn [data] (assoc-in data [:player :born?] true))))
+        (if (> disabled 0)
+          (do
+            (.setFill (player-object :kinetic) "#aaa")
+            (swap! data (fn [data]
+                          (assoc-in data [:player :disabled] (max 0 (dec disabled)))))
+            (when (<= (get-in @data [:player :disabled] 0) 0)
+              (play-sound :repaired)))
+          (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
+                ta (proper-angle ta)
+                da (- ta a)
+                da (if (> da 180) (- da 360) da)
+                da (if (< da -180) (+ 360 da) da)
+                da (if (and (< ta a) (> (- ta a) 180)) (- da) da)
+                te (get-in @data [:player :target-error] 0)
+                p (* 0.1 da)
+                i (* 0.001 te)
+                d (* 1 (- da (get-in @data [:player :target-error-last] 0)))
+                ]
+            (.setFill (player-object :kinetic) "#fff")
+            (when (< (Math/abs da) 20)
+              (when-let [thrust (get-in @data [:player :thrust])]
+                (let [distance (min 200 (thrust :distance 0))
+                      volume (min 1.0 (/ distance 200))]
+                  (play-sound :thrust :volume volume)
+                  (impulse player-object (* distance 1000) (* Math/PI (/ a 180.0))))))
+            ;;(log "a " a " ta " ta " da " da)
+            (torque player-object (* (+ p i d) 1000000))
+            (swap! data (fn [data] (-> data
+                                       (update-in [:player :target-error] + da)
+                                       (assoc-in [:player :target-error-last] da))))))
+        (let [{px "x" py "y"} (get-position player-object)]
+          (when (or (< px 0)
+                    (< py 0)
+                    (>= py (@data :screen-height)))
+            (end!))))
+      (let [speed 1
+            fallen (get @data :fallen)
+            target-fallen (cond (< level 400) 1
+                                (< level 800) 3
+                                (< level 1000) 5
+                                (< level 1500) 10
+                                (< level 2000) 20
+                                (< level 2500) 1
+                                (< level 3000) 5
+                                (< level 3500) 10
+                                (< level 4000) 20
+                                (< level 8000) 10
+                                :else 5)]
+        (if (< (count fallen) target-fallen)
+          (let [size-min (/ level 500)
+                size (cond (< level 3000) 15
+                           (< level 5000) 30
+                           (< level 8000) 40
+                           (< level 9000) 50
+                           (< level 10000) 100
+                           :else 50)
+                size (+ size-min (rand size) (rand size) (rand size))
+                type (cond (< level 1000) 0
+                           (< level 3000) (rand-int 3)
+                           (< level 5000) (+ 3 (rand-int 3))
+                           (< level 7000) 6
+                           (< level 8000) (rand-int 7)
+                           :else 7)]
+            (make-fallen! size type)))
+        (swap! data (fn [data]
+                      (update-in data [:level] (fn [x] (+ x speed)))))
+        (when (>= level 10000)
+          (win!))
+        ;;(.gravity (@data :world) {:x (- level) :y 0})
+        (when (= 0 (mod level 100))
+          (em/at js/document ["body"] (em/set-attr :style (str "background-color: " (get-level-color)))))
+        ))))
 
 
 (defn stupid-hack! []
@@ -485,8 +502,8 @@
                     (assoc-in [:sounds :hit] (js/Audio. "/snd/hit.wav"))
                     (assoc-in [:sounds :repaired] (js/Audio. "/snd/powerup.wav"))))))
 
-
-(defn startup []
+(defn startup [params]
+  (swap! data (fn [data] (merge data (js->clj params :keywordize-keys true))))
   (log "startup")
   (setup-screen)
   (setup-world)

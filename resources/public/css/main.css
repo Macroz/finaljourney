@@ -9,6 +9,16 @@ body {
 }
 
 .black {
+    background-color: black;
+    color: white;
+}
+
+.white {
+    background-color: white;
+    color: black;
+}
+
+.finished {
     display: none;
     opacity: 0;
     position: absolute;
@@ -17,8 +27,6 @@ body {
     top: 0px;
     right: 0px;
     bottom: 0px;
-    background-color: black;
-    color: white;
     text-align: center;
     vertical-align: middle;
     height: 100%;
@@ -69,8 +77,12 @@ a:-webkit-any-link {
     text-decoration: none !important;
 }
 
-a.end {
+.black a.end {
     color: white;
+}
+
+.white a.end {
+    color: black;
 }
 
 a:hover {

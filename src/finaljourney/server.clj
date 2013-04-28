@@ -28,6 +28,15 @@
              [:a.begin {:href "/game"} [:h1 "Begin"]]
              ]]]]))
 
+(defn clj->js [x]
+  (str "{" (apply str (interpose "," (map (fn [e]
+                                            (str (if (keyword? (key e))
+                                                   (name (key e))
+                                                   (key e)) ": "
+                                                   (if (re-matches #"\d+" (val e))
+                                                     (val e)
+                                                     (str "'" (val e) "'")))) x))) "}"))
+
 (defn game-page [params]
   (html5 [:html
           [:head
@@ -43,13 +52,13 @@
            (include-js "js/boxbox.js")
            (include-js "js/hammer.js")
            (include-js "js/cljs.js")]
-          [:body {:onload (str "finaljourney.main.startup(" (params :delay) ");")}
-           [:div.black.center
+          [:body {:onload (str "finaljourney.main.startup(" (clj->js params) ");")}
+           [:div.finished.center
             [:div.content
              [:div.space]
              [:h1 "Final Journey"]
              [:div.space]
-             [:a.end {:href "/"} [:h1 "End"]]
+             [:a.end {:href "/"} [:h1.result "End"]]
              [:div.space]
              [:div.score]
              ]]
