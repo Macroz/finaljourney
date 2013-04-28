@@ -136,8 +136,15 @@
         x 200
         y (/ h 2)
         object (make-poly! layer x y 0 [0 0 30 10 0 20])]
-    (impulse object 10000000 0)
-    (swap! data (fn [data] (assoc data :player {:object object})))))
+    (impulse object 5000000 0)
+    (swap! data (fn [data] (assoc data :player {:object object})))
+    (.onImpact (get-in @data [:player :object :boxbox])
+               (fn [entity normalForce tangentForce]
+                 (let [force (* normalForce 0.0001)
+                       force (if (< force 10) 0 force)]
+                   ;;(log "impact " force)
+                   (swap! data (fn [data]
+                                 (update-in data [:player :disabled] + force))))))))
 
 (defn make-fallen! []
   (let [layer (get-main-layer)
@@ -191,9 +198,13 @@
           (.destroy kinetic))
         (make-fallen!))))
   (let [player-object (get-in @data [:player :object])
-        disabled? (get @data :disabled? false)
+        disabled (get-in @data [:player :disabled] 0)
         a (get-heading player-object)]
-    (when-not disabled?
+    (if (> disabled 0)
+      (do
+        (.setFill (player-object :kinetic) "#aaa")
+        (swap! data (fn [data]
+                      (update-in data [:player :disabled] - 1))))
       (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
             ta (proper-angle ta)
             da (- ta a)
@@ -205,6 +216,7 @@
             i (* 0.001 te)
             d (* 1 (- da (get-in @data [:player :target-error-last] 0)))
             ]
+        (.setFill (player-object :kinetic) "#fff")
         (when (< (Math/abs da) 20)
           (when-let [thrust (get-in @data [:player :thrust])]
             (impulse player-object (* (thrust :distance 0) 1000) (* Math/PI (/ a 180.0)))))
