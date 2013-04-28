@@ -129,6 +129,10 @@
       (.setPoints (pattern3 :kinetic) (clj->js [0 0 w 0 w h 0 h]))))
   (stupid-hack!))
 
+(defn play-sound [id]
+  (when-let [sound (get-in @data [:sounds id])]
+    (.play sound)))
+
 (defn init-player! []
   (let [layer (get-main-layer)
         {w :screen-width
@@ -140,11 +144,12 @@
     (swap! data (fn [data] (assoc data :player {:object object})))
     (.onImpact (get-in @data [:player :object :boxbox])
                (fn [entity normalForce tangentForce]
-                 (let [force (* normalForce 0.0001)
-                       force (if (< force 10) 0 force)]
+                 (let [force (* (max (Math/abs normalForce) (Math/abs tangentForce)) 0.0001)]
                    ;;(log "impact " force)
-                   (swap! data (fn [data]
-                                 (update-in data [:player :disabled] + force))))))))
+                   (play-sound :hit)
+                   (when (> force 10)
+                     (swap! data (fn [data]
+                                   (update-in data [:player :disabled] + force)))))))))
 
 (defn make-fallen! []
   (let [layer (get-main-layer)
@@ -165,12 +170,18 @@
                                                   6 [0 (* h 0.5) (* w 0.5) 0 w (* h 0.5) (* w 0.75) h (* w 0.25) h]
                                                   7 [0 (/ h 2) (/ w 3) 0 (/ w 1.5) 0 w (/ h 2) (/ w 1.5) h (/ w 3) h]))]
     (when-let [b (object :boxbox)]
-      (.density b weight))
+      (.density b weight)
+      (.onImpact b
+                 (fn [entity normalForce tangentForce]
+                   (let [force (* (max (Math/abs normalForce) (Math/abs tangentForce)) 0.0001)]
+                     (when (> force 10)
+                       (play-sound :hit))))))
     ;;(log "xy " x " " y)
     (impulse object (+ (rand 200000) (rand 300000)) (rand (* 2 Math/PI)))
     (impulse object (+ 1000000) 3.141)
     (torque object (rand 100000000))
-    (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))))
+    (swap! data (fn [data] (update-in data [:fallen] conj {:object object})))
+    ))
 
 (defn remove-fallen? [fallen]
   (let [{x "x" y "y"} (get-position (fallen :object))]
@@ -180,6 +191,7 @@
 
 (defn end! []
   (when-not (@data :end?)
+    (play-sound :death)
     (log "end")
     (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
     (em/at js/document [".black"] (em/chain (em/add-class "show")
@@ -208,11 +220,16 @@
   (let [player-object (get-in @data [:player :object])
         disabled (get-in @data [:player :disabled] 0)
         a (get-heading player-object)]
+    (when-not (get-in @data [:player :born?] false)
+      (play-sound :birth)
+      (swap! data (fn [data] (assoc-in data [:player :born?] true))))
     (if (> disabled 0)
       (do
         (.setFill (player-object :kinetic) "#aaa")
         (swap! data (fn [data]
-                      (update-in data [:player :disabled] - 1))))
+                      (assoc-in data [:player :disabled] (max 0 (dec disabled)))))
+        (when (<= (get-in @data [:player :disabled] 0) 0)
+          (play-sound :repaired)))
       (let [ta (/ (* 180.0 (get-in @data [:player :target-angle] 0)) Math/PI)
             ta (proper-angle ta)
             da (- ta a)
@@ -227,6 +244,7 @@
         (.setFill (player-object :kinetic) "#fff")
         (when (< (Math/abs da) 20)
           (when-let [thrust (get-in @data [:player :thrust])]
+            (play-sound :thrust)
             (impulse player-object (* (thrust :distance 0) 1000) (* Math/PI (/ a 180.0)))))
         ;;(log "a " a " ta " ta " da " da)
         (torque player-object (* (+ p i d) 1000000))
@@ -364,11 +382,22 @@
   (setup-mouse-events)
   (setup-touch-events))
 
+(defn setup-sounds []
+  (swap! data (fn [data]
+                (-> data
+                    (assoc-in [:sounds :thrust] (js/Audio. "/snd/thrust.wav"))
+                    (assoc-in [:sounds :death] (js/Audio. "/snd/longbeep.wav"))
+                    (assoc-in [:sounds :birth] (js/Audio. "/snd/birth.wav"))
+                    (assoc-in [:sounds :hit] (js/Audio. "/snd/hit.wav"))
+                    (assoc-in [:sounds :repaired] (js/Audio. "/snd/powerup.wav"))))))
+
+
 (defn startup []
   (log "startup")
   (setup-screen)
   (setup-world)
   (setup-controls)
+  (setup-sounds)
   (set! (.-onresize js/window) resize)
   (em/at js/document ["canvas"] (em/chain (em/fade-in 2000)))
   (log "startup done"))
