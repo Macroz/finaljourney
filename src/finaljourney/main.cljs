@@ -33,41 +33,6 @@
   (js/Kinetic.Layer. (clj->js {:width (@data :screen-width)
                                :height (@data :screen-height)})))
 
-(defn make-rect! [layer rect]
-  (let [world (@data :world)
-        {x :x
-         y :y
-         w :width
-         h :height} rect
-        krect (js/Kinetic.Rect. (clj->js {:x x
-                                          :y y
-                                          :width w
-                                          :height h
-                                          ;;:fill "none"
-                                          :stroke "black"
-                                          :strokeWidth 2
-                                          }))
-        brect (.createEntity world (clj->js {:x (+ x (/ w 2))
-                                             :y (+ y (/ h 2))
-                                             :shape "square"
-                                             :width w
-                                             :height h
-                                             :density 10
-                                             :color "red"
-                                             :draw (fn [])
-                                             :onTick (fn []
-                                                       (this-as brect
-                                                                (when brect
-                                                                  (let [{x "x"
-                                                                         y "y"} (js->clj (.position brect))]
-                                                                    (.setPosition krect
-                                                                                  (- x (/ w 2))
-                                                                                  (- y (/ h 2)))
-                                                                    ))))
-                                             }))]
-    (.add layer krect)
-    {:kinetic krect :boxbox brect}))
-
 (defn to-boxbox-points [points]
   (vec (for [[x y] (partition 2 points)]
          {:x x :y y})))
@@ -145,16 +110,8 @@
           :else "#fff")))
 
 (defn setup-screen []
-  (let [;;container (.getElementById js/document "container")
-        ;;screen-width (.-offsetWidth container)
-        ;;screen-height (.-offsetHeight container)
-        screen-width (.-innerWidth js/window)
-        screen-height (.-innerHeight js/window)
-        ;;screen-width (.-clientWidth (.-documentElement js/document))
-        ;;screen-height (.-clientHeight (.-documentElement js/document))
-        ;;screen-width (.-innerWidth js/window)
-        ;;screen-height (.-innerHeight js/window)
-        ]
+  (let [screen-width (.-innerWidth js/window)
+        screen-height (.-innerHeight js/window)]
     (log "detected screen " screen-width "x" screen-height)
     (swap! data (fn [data]
                   (assoc data :screen-width screen-width :screen-height screen-height)))))
@@ -193,7 +150,8 @@
         h (+ 5 (rand 10) (rand 20) (rand 30))
         weight (* w h)
         object (make-poly! layer x y (rand 360) [0 0 w 0 w h 0 h])]
-    (.density (object :boxbox) weight)
+    (when-let [b (object :boxbox)]
+      (.density b weight))
     ;;(log "xy " x " " y)
     (impulse object (+ (rand 200000) (rand 300000)) (rand (* 2 Math/PI)))
     (impulse object (+ 1000000) 3.141)
@@ -225,8 +183,10 @@
       ;;(log "removing " f)
       (let [{boxbox :boxbox
              kinetic :kinetic} (f :object)]
-        (.destroy boxbox)
-        (.destroy kinetic)
+        (when boxbox
+          (.destroy boxbox))
+        (when kinetic
+          (.destroy kinetic))
         (make-fallen!))))
   (let [player-object (get-in @data [:player :object])
         {px "x" py "y"} (get-position player-object)]
@@ -235,31 +195,31 @@
               (>= py (@data :screen-height)))
       (end!)))
   (let [level (get @data :level 0)
-        speed 50]
+        speed 1]
     (swap! data (fn [data]
                   (update-in data [:level] (fn [x] (+ x speed)))))
-    ;;(update-in data [:level] inc)))
-    (let [pattern (get-in @data [:pattern1])]
-      (when pattern
-        (.setFill (pattern :kinetic) (get-level-color))))
-    (let [pattern (get-in @data [:pattern2])]
-      (when pattern
-        (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 50) -500]))
-        (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 300))))))
-        (.setFillPatternRotationDeg (pattern :kinetic) (mod (/ level 300) 360))
-        (.setOpacity (pattern :kinetic) (max 0 (/ (- 6000 level) 5000)))
-        ))
-    (let [pattern (get-in @data [:pattern3])]
-      (when pattern
-        (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 77) -500]))
-        (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 700))))))
-        (.setFillPatternRotationDeg (pattern :kinetic) (- 360 (mod (/ level 200) 360)))
-        (.setOpacity (pattern :kinetic)
-                     (cond (< level 8000) 0
-                           (< level 13000) (/ (- level 8000) 5000)
-                           (< level 18000) (- 1.0 (/ (- level 13000) 5000))
-                           :else 0))
-        ))
+    ;; (let [pattern (get-in @data [:pattern1])]
+    ;;   (when pattern
+    ;;     (.setFill (pattern :kinetic) (get-level-color))))
+    ;; (let [pattern (get-in @data [:pattern2])]
+    ;;   (when pattern
+    ;;     (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 50) -500]))
+    ;;     (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 300))))))
+    ;;     (.setFillPatternRotationDeg (pattern :kinetic) (mod (/ level 300) 360))
+    ;;     (.setOpacity (pattern :kinetic) (max 0 (/ (- 6000 level) 5000)))
+    ;;     ))
+    ;; (let [pattern (get-in @data [:pattern3])]
+    ;;   (when pattern
+    ;;     (.setFillPatternOffset (pattern :kinetic) (clj->js [(/ level 77) -500]))
+    ;;     (.setFillPatternScale (pattern :kinetic) (+ 1 (min 30 (Math/abs (- 30 (/ level 700))))))
+    ;;     (.setFillPatternRotationDeg (pattern :kinetic) (- 360 (mod (/ level 200) 360)))
+    ;;     (.setOpacity (pattern :kinetic)
+    ;;                  (cond (< level 8000) 0
+    ;;                        (< level 13000) (/ (- level 8000) 5000)
+    ;;                        (< level 18000) (- 1.0 (/ (- level 13000) 5000))
+    ;;                        :else 0))
+    ;;     ))
+    (when (= 0 (mod level 100)) (log "tick"))
     ))
 
 
@@ -285,35 +245,39 @@
                       (assoc :background background)
                       (assoc :stage stage)
                       )))
-    (let [image1 (js/Image.)
-          image2 (js/Image.)
-          pattern1 (make-pattern! background)
-          pattern2 (make-pattern! background)
-          pattern3 (make-pattern! background)]
-      (set! (.-onload image1) (fn []
-                                (swap! data (fn [data]
-                                              (assoc data :image1 image1)))
-                                (.setFillPatternImage (pattern2 :kinetic) (@data :image1))
-                                (.setFillPatternOffset (pattern2 :kinetic) [0 0])
-                                (.draw background)))
-      (set! (.-src image1)  "/img/pattern1.png")
-      (set! (.-onload image2) (fn []
-                                (swap! data (fn [data]
-                                              (assoc data :image2 image2)))
-                                (.setFillPatternImage (pattern3 :kinetic) (@data :image2))
-                                (.setFillPatternOffset (pattern3 :kinetic) [0 0])
-                                (.draw background)))
-      (set! (.-src image2)  "/img/pattern2.png")
-      (swap! data (fn [data]
-                    (-> data
-                        (assoc :pattern1 pattern1)
-                        (assoc :pattern2 pattern2)
-                        (assoc :pattern3 pattern3)))))
+    (when false
+      (let [image1 (js/Image.)
+            image2 (js/Image.)
+            pattern1 (make-pattern! background)
+            pattern2 (make-pattern! background)
+            pattern3 (make-pattern! background)]
+        (set! (.-onload image1) (fn []
+                                  (swap! data (fn [data]
+                                                (assoc data :image1 image1)))
+                                  (.setFillPatternImage (pattern2 :kinetic) (@data :image1))
+                                  (.setFillPatternOffset (pattern2 :kinetic) [0 0])
+                                  ;;(.draw background)
+                                  ))
+        (set! (.-src image1)  "/img/pattern1.png")
+        (set! (.-onload image2) (fn []
+                                  (swap! data (fn [data]
+                                                (assoc data :image2 image2)))
+                                  (.setFillPatternImage (pattern3 :kinetic) (@data :image2))
+                                  (.setFillPatternOffset (pattern3 :kinetic) [0 0])
+                                  ;;(.draw background)
+                                  ))
+        (set! (.-src image2)  "/img/pattern2.png")
+        (swap! data (fn [data]
+                      (-> data
+                          (assoc :pattern1 pattern1)
+                          (assoc :pattern2 pattern2)
+                          (assoc :pattern3 pattern3))))))
     (stupid-hack!)
     (let [canvas (get-canvas)
           world (make-boxbox canvas)]
       (.onRender world (fn [] (.draw stage)))
-      (.onTick world tick))
+      (.onTick world tick)
+      )
     (init-player!)
     (swap! data (fn [data]
                   (assoc data :fallen [])))
@@ -324,13 +288,16 @@
   (/ (* 180.0 radians) Math/PI))
 
 (defn get-position [object]
-  (js->clj (.position (get object :boxbox))))
+  (when-let [b (get object :boxbox)]
+    (js->clj (.position b))))
 
 (defn impulse [object power angle]
-  (.applyImpulse (get object :boxbox) power (+ 90 (to-degrees angle))))
+  (when-let [b (get object :boxbox)]
+    (.applyImpulse b power (+ 90 (to-degrees angle)))))
 
 (defn torque [object power]
-  (.applyTorque (get object :boxbox) power))
+  (when-let [b (get object :boxbox)]
+    (.applyTorque b power)))
 
 (defn thrust [tx ty]
   (let [player-object (get-in @data [:player :object])
