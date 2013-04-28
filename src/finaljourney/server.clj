@@ -26,6 +26,12 @@
              [:h1 "Final Journey"]
              [:div.space]
              [:a.begin {:href "/game"} [:h1 "Begin"]]
+             [:div.space]
+             [:div.info
+              [:p [:a {:href "http://ludumdare.com/compo/"} "Ludum Dare #26 Game Programming Competition"] " entry by " [:a {:href "http://markku.rontu.net"} "Markku Rontu / markku.rontu@iki.fi / @zorcam"]]
+              [:p "Touch or mouse to play. Google Chrome recommended for speed."]
+              [:p "Finished, awesome! Only problem this time was JavaScript performance. Had tons of fun! #win"]
+              [:p [:a {:href "http://www.github.com/Macroz/finaljourney/"} "Source and more info"]]]
              ]]]]))
 
 (defn clj->js [x]

@@ -68,21 +68,21 @@ h1 {
 }
 
 a, a:link, a:active, a:visited {
-    color: black;
+    color: #111;
     text-decoration: none !important;
 }
 
 a:-webkit-any-link {
-    color: black;
+    color: #111;
     text-decoration: none !important;
 }
 
 .black a.end {
-    color: white;
+    color: #eee;
 }
 
 .white a.end {
-    color: black;
+    color: #111;
 }
 
 a:hover {
@@ -91,4 +91,13 @@ a:hover {
 
 a:-webkit-any-link:hover {
     background-color: #aaa;
+}
+
+.info {
+    text-align: left;
+    color: #444;
+}
+
+.info p {
+    margin-bottom: 0.5em;
 }
