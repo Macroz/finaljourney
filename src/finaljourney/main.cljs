@@ -54,11 +54,19 @@
         krect (js/Kinetic.Polygon. (clj->js {:x x
                                              :y y
                                              :points points
-                                             :fill "white"
-                                             :stroke "black"
+                                             :fill "#eee"
+                                             :stroke "#000"
                                              :strokeWidth 2
                                              :rotationDeg a
                                              }))
+        shadow (js/Kinetic.Polygon. (clj->js {:x x
+                                              :y y
+                                              :points points
+                                              :fill "#777"
+                                              :stroke "#777"
+                                              :strokeWidth 2
+                                              :rotationDeg a
+                                              }))
         brect (.createEntity world (clj->js {:x x
                                              :y y
                                              :points (to-boxbox-points points)
@@ -72,14 +80,22 @@
                                                                 (when t
                                                                   (let [{x "x"
                                                                          y "y"} (js->clj (.position t))
-                                                                         a (.rotation t)]
+                                                                         a (.rotation t)
+                                                                         ox (.getX krect)
+                                                                         oy (.getY krect)
+                                                                         oa (.getRotationDeg krect)]
+                                                                    (.setX shadow ox)
+                                                                    (.setY shadow oy)
+                                                                    (.setRotationDeg shadow oa)
                                                                     (.setX krect x)
                                                                     (.setY krect y)
                                                                     (.setRotationDeg krect a)
                                                                     ))))
                                              }))]
+    (.add layer shadow)
     (.add layer krect)
-    {:kinetic krect :boxbox brect :points points}))
+    (.moveToBottom shadow)
+    {:kinetic krect :boxbox brect :points points :shadow shadow}))
 
 (defn make-boxbox [canvas]
   (let [world (.createWorld js/boxbox canvas (clj->js {:scale 1
@@ -214,11 +230,14 @@
     (doseq [f removes]
       ;;(log "removing " f)
       (let [{boxbox :boxbox
-             kinetic :kinetic} (f :object)]
+             kinetic :kinetic
+             shadow :shadow} (f :object)]
         (when boxbox
           (.destroy boxbox))
         (when kinetic
-          (.destroy kinetic)))))
+          (.destroy kinetic))
+        (when shadow
+          (.destroy shadow)))))
   (let [player-object (get-in @data [:player :object])
         disabled (get-in @data [:player :disabled] 0)
         a (get-heading player-object)]
