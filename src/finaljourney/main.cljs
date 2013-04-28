@@ -96,8 +96,9 @@
                                                                     (.setRotationDeg krect a)
                                                                     ))))
                                              }))
-        trail (for [i (range 7)]
-                (let [c (apply str "#" (repeat 3 (- 9 i)))]
+        trail (for [i (range (@data :traillength))]
+                (let [c (- 255 (* 255 (/ i (@data :traillength))))
+                      c (str "rgb(" c ", " c ", " c ")")]
                   (js/Kinetic.Polygon. (clj->js {:x x
                                                  :y y
                                                  :points [-2 -1 2 0 -2 1]
@@ -334,7 +335,12 @@
             (swap! data (fn [data] (-> data
                                        (update-in [:player :target-error] + da)
                                        (assoc-in [:player :target-error-last] da))))))
-        (let [{px "x" py "y"} (get-position player-object)]
+        (let [{px "x" py "y"} (get-position player-object)
+              death (get @data :death)
+              scale (max 0 (/ (- 400 px) 400))]
+          (.setOpacity death scale scale)
+          (.setX death (min 0 (- (* px 2))))
+          (.setScale death (+ 0.2 (* scale 0.8)))
           (when (or (< px 0)
                     (< py 0)
                     (>= py (@data :screen-height)))
@@ -410,8 +416,47 @@
       (.onTick world tick)
       )
     (make-player!)
-    (swap! data (fn [data]
-                  (assoc data :fallen [])))))
+    (let [sw (@data :screen-width)
+          sh (@data :screen-height)
+          sh2 (/ sh 2)
+          death (js/Kinetic.Polygon. (clj->js {:x 0
+                                               :y sh2
+                                               :points [-5 (- sh2)
+                                                        (/ sw 2.00) (- 0 sh2)
+                                                        (/ sw 1.50) (- (/ sh 8.0) sh2)
+                                                        (/ sw 1.30) (- (/ sh 3.5) sh2)
+                                                        (/ sw 1.70) (- (/ sh 6.0) sh2)
+                                                        (/ sw 5.00) (- (/ sh 9.0) sh2)
+                                                        (/ sw 2.30) (- (/ sh 4.0) sh2)
+                                                        (/ sw 1.60) (- (/ sh 3.5) sh2)
+                                                        (/ sw 2.10) (- (/ sh 3.1) sh2)
+                                                        (/ sw 4.50) (- (/ sh 2.8) sh2)
+                                                        (/ sw 6.00) (- (/ sh 2.5) sh2)
+                                                        (/ sw 5.00) (- (/ sh 2.2) sh2)
+                                                        (/ sw 2.50) (- (/ sh 2.1) sh2)
+                                                        (/ sw 1.80) (- (/ sh 2.9) sh2)
+                                                        (/ sw 2.10) (- (/ sh 2.0) sh2)
+                                                        (/ sw 3.10) (- (/ sh 1.7) sh2)
+                                                        (/ sw 4.00) (- (/ sh 1.3) sh2)
+                                                        (/ sw 2.10) (- (/ sh 1.2) sh2)
+                                                        (/ sw 1.80) (- (/ sh 1.3) sh2)
+                                                        (/ sw 2.10) (- (/ sh 1.1) sh2)
+                                                        (/ sw 1.35) (- (/ sh 1.2) sh2)
+                                                        (/ sw 1.15) (- (/ sh 1.5) sh2)
+                                                        (/ sw 1.30) (- (/ sh 1.1) sh2)
+                                                        (/ sw 1.40) (- (/ sh 1.05) sh2)
+                                                        (/ sw 1.60) (- sh sh2)
+                                                        -5 (- sh sh2)]
+                                               :fill "#000"
+                                               :stroke "#333"
+                                               :strokeWidth 2
+                                               :opacity 0
+                                               }))]
+      (.add layer death)
+      (swap! data (fn [data]
+                    (-> data
+                        (assoc :fallen [])
+                        (assoc :death death)))))))
 
 (defn to-degrees [radians]
   (/ (* 180.0 radians) Math/PI))
@@ -513,7 +558,7 @@
                     (assoc-in [:sounds :repaired] (js/Audio. "/snd/powerup.wav"))))))
 
 (defn startup [params]
-  (swap! data (fn [data] (merge data (js->clj params :keywordize-keys true))))
+  (swap! data (fn [data] (merge data {:traillength 3} (js->clj params :keywordize-keys true))))
   (log "startup")
   (setup-screen)
   (setup-world)
