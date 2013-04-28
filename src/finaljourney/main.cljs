@@ -163,14 +163,14 @@
       (set! (.-volume sound) volume)
       (.play sound))))
 
-(defn init-player! []
+(defn make-player! []
   (let [layer (get-main-layer)
         {w :screen-width
          h :screen-height} @data
         x 100
         y (/ h 2)
         object (make-poly! layer x y 0 [-15 -10 15 0 -15 10])]
-    (impulse object 300000 0)
+    (impulse object 1000000 0)
     (swap! data (fn [data] (assoc data :player {:object object})))
     (.onImpact (get-in @data [:player :object :boxbox])
                (fn [entity normalForce tangentForce]
@@ -227,7 +227,7 @@
     (log "end")
     (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
     (em/at js/document [".finished"] (em/chain (em/add-class "show black")
-                                            (em/fade-in 4000)))
+                                               (em/fade-in 4000)))
     (em/at js/document [".result"] (em/content "End"))
     (em/at js/document [".score"] (em/content (str (get @data :level))))
     (swap! data (fn [data] (assoc data :end? true)))))
@@ -238,7 +238,7 @@
     (log "win")
     (em/at js/document ["canvas"] (em/chain (em/fade-out 2000)))
     (em/at js/document [".finished"] (em/chain (em/add-class "show white")
-                                            (em/fade-in 4000)))
+                                               (em/fade-in 4000)))
     (em/at js/document [".result"] (em/content "Win"))
     (em/at js/document [".score"] (em/content (str (min 10000 (get @data :level)))))
     (swap! data (fn [data] (assoc data :win? true)))))
@@ -347,14 +347,14 @@
                                 (< level 3500) 10
                                 (< level 4000) 20
                                 (< level 8000) 10
-                                :else 5)]
+                                :else 8)]
         (if (< (count fallen) target-fallen)
           (let [size-min (/ level 500)
                 size (cond (< level 3000) 15
                            (< level 5000) 30
                            (< level 8000) 40
                            (< level 9000) 50
-                           (< level 10000) 100
+                           (< level 10000) 120
                            :else 50)
                 size (+ size-min (rand size) (rand size) (rand size))
                 type (cond (< level 1000) 0
@@ -368,7 +368,8 @@
                       (update-in data [:level] (fn [x] (+ x speed)))))
         (when (>= level 10000)
           (win!))
-        ;;(.gravity (@data :world) {:x (- level) :y 0})
+        (let [gravity (clj->js {:x (- (/ (- 10000 level) 80)) :y 0})]
+          (.gravity (@data :world) gravity))
         (when (= 0 (mod level 100))
           (em/at js/document ["body"] (em/set-attr :style (str "background-color: " (get-level-color)))))
         ))))
@@ -399,7 +400,7 @@
                          ))
       (.onTick world tick)
       )
-    (init-player!)
+    (make-player!)
     (swap! data (fn [data]
                   (assoc data :fallen [])))))
 

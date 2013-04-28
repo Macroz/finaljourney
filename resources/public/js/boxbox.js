@@ -455,7 +455,7 @@
          */
         gravity: function(value) {
             if (value !== undefined) {
-                this._world.SetGravity(new b2Vec2(0, value));
+                this._world.SetGravity(new b2Vec2(value.x, value.y));
             }
             var v = this._world.GetGravity();
             return {x: v.x, y: v.y};
