@@ -154,16 +154,16 @@
                      (swap! data (fn [data]
                                    (update-in data [:player :disabled] + force)))))))))
 
-(defn make-fallen! []
+(defn make-fallen! [size type]
   (let [layer (get-main-layer)
         {sw :screen-width
          sh :screen-height} @data
         x (+ sw (rand-int (max 0 (- sw 250))))
         y (rand-int sh)
-        w (+ 5 (rand 10) (rand 20) (rand 30))
-        h (+ 5 (rand 10) (rand 20) (rand 30))
+        w size
+        h size
         weight (* w h)
-        object (make-poly! layer x y (rand 360) (case (rand-int 8)
+        object (make-poly! layer x y (rand 360) (case type
                                                   0 [0 h (/ w 3) 0 w h]
                                                   1 [0 h (/ w 2) 0 w h]
                                                   2 [0 h (/ w 1.5) 0 w h]
@@ -218,8 +218,7 @@
         (when boxbox
           (.destroy boxbox))
         (when kinetic
-          (.destroy kinetic))
-        (make-fallen!))))
+          (.destroy kinetic)))))
   (let [player-object (get-in @data [:player :object])
         disabled (get-in @data [:player :disabled] 0)
         a (get-heading player-object)]
@@ -262,7 +261,19 @@
                 (>= py (@data :screen-height)))
         (end!))))
   (let [level (get @data :level 0)
-        speed 1]
+        speed 1
+        fallen (get @data :fallen)
+        target-fallen (cond (< level 400) 1
+                            (< level 800) 3
+                            (< level 1000) 5
+                            (< level 1500) 10
+                            (< level 2000) 20
+                            :else 30)]
+    (if (< (count fallen) target-fallen)
+      (let [size (cond (< level 10000) 20)
+            size (+ 3 (rand size) (rand size) (rand size))
+            type 0]
+        (make-fallen! size type)))
     (swap! data (fn [data]
                   (update-in data [:level] (fn [x] (+ x speed)))))
     (when (= 0 (mod level 100))
@@ -288,14 +299,16 @@
     (stupid-hack!)
     (let [canvas (get-canvas)
           world (make-boxbox canvas)]
-      (.onRender world (fn [] (.draw stage)))
+      (.onRender world (fn [ctx]
+                         (.draw stage)
+                         (set! (.-fillStyle ctx) "#fff")
+                         (.fillText ctx (str "Level: "(get @data :level 0)) 10 20)
+                         ))
       (.onTick world tick)
       )
     (init-player!)
     (swap! data (fn [data]
-                  (assoc data :fallen [])))
-    (doseq [i (range 15)]
-      (make-fallen!))))
+                  (assoc data :fallen [])))))
 
 (defn to-degrees [radians]
   (/ (* 180.0 radians) Math/PI))
