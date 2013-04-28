@@ -133,10 +133,10 @@
   (let [layer (get-main-layer)
         {w :screen-width
          h :screen-height} @data
-        x 200
+        x 100
         y (/ h 2)
         object (make-poly! layer x y 0 [0 0 30 10 0 20])]
-    (impulse object 5000000 0)
+    (impulse object 500000 0)
     (swap! data (fn [data] (assoc data :player {:object object})))
     (.onImpact (get-in @data [:player :object :boxbox])
                (fn [entity normalForce tangentForce]
@@ -155,7 +155,15 @@
         w (+ 5 (rand 10) (rand 20) (rand 30))
         h (+ 5 (rand 10) (rand 20) (rand 30))
         weight (* w h)
-        object (make-poly! layer x y (rand 360) [0 0 w 0 w h 0 h])]
+        object (make-poly! layer x y (rand 360) (case (rand-int 8)
+                                                  0 [0 h (/ w 3) 0 w h]
+                                                  1 [0 h (/ w 2) 0 w h]
+                                                  2 [0 h (/ w 1.5) 0 w h]
+                                                  3 [0 0 w 0 w h 0 h]
+                                                  4 [0 h (* w 0.25) 0 w 0 (* w 0.75) h]
+                                                  5 [0 h (* w 0.33) 0 w 0 (* w 0.66) h]
+                                                  6 [0 (* h 0.5) (* w 0.5) 0 w (* h 0.5) (* w 0.75) h (* w 0.25) h]
+                                                  7 [0 (/ h 2) (/ w 3) 0 (/ w 1.5) 0 w (/ h 2) (/ w 1.5) h (/ w 3) h]))]
     (when-let [b (object :boxbox)]
       (.density b weight))
     ;;(log "xy " x " " y)
